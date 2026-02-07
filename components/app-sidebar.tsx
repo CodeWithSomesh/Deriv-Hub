@@ -1,22 +1,19 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import {
   IconBook2,
   IconBrandTiktok,
-  IconChartBar,
   IconDashboard,
   IconDatabase,
   IconFileWord,
-  IconHelp,
   IconInnerShadowTop,
   IconReport,
-  IconSearch,
   IconSettings,
   IconBrain,
 } from "@tabler/icons-react"
 
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -34,7 +31,7 @@ const data = {
   user: {
     name: "shadcn",
     email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    avatar: "",
   },
   navMain: [
     {
@@ -104,10 +101,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="/" className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2">
                 <IconInnerShadowTop className="!size-5 text-[#FF444F]" />
                 <span className="text-base font-semibold">Deriv<span className="text-[#FF444F]">Hub</span></span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

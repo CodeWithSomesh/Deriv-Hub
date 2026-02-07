@@ -1,10 +1,6 @@
 "use client";
 
-import Image from 'next/image'
 import { ArrowWIcon } from './Icons'
-import cursorImage from '@/assets/images/cursor.png'
-import messageImage from '@/assets/images/message.png'
-import { motion } from 'framer-motion'
 
 const Hero = () => {
   return (
