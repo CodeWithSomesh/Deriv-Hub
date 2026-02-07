@@ -1,54 +1,66 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { Clock, TrendingDown, TrendingUp, Minus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import type { NewsItem } from '@/lib/services/marketService'
+import { motion } from "framer-motion";
+import { Clock, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import type { NewsItem } from "@/lib/services/marketService";
 
 interface NewsCardProps {
-  item: NewsItem
-  index: number
+  item: NewsItem;
+  index: number;
 }
 
 const impactClass: Record<string, string> = {
-  HIGH: 'glow-border-high',
-  MEDIUM: 'glow-border-medium',
-  LOW: 'glow-border-low',
-}
+  HIGH: "glow-border-high",
+  MEDIUM: "glow-border-medium",
+  LOW: "glow-border-low",
+};
 
 const sentimentConfig: Record<
   string,
   { icon: typeof TrendingDown; className: string }
 > = {
-  Bearish: { icon: TrendingDown, className: 'bg-sentiment-bearish/15 text-sentiment-bearish border-sentiment-bearish/30' },
-  Bullish: { icon: TrendingUp, className: 'bg-sentiment-bullish/15 text-sentiment-bullish border-sentiment-bullish/30' },
-  Neutral: { icon: Minus, className: 'bg-sentiment-neutral/15 text-sentiment-neutral border-sentiment-neutral/30' },
-}
+  Bearish: {
+    icon: TrendingDown,
+    className:
+      "bg-sentiment-bearish/15 text-sentiment-bearish border-sentiment-bearish/30",
+  },
+  Bullish: {
+    icon: TrendingUp,
+    className:
+      "bg-sentiment-bullish/15 text-sentiment-bullish border-sentiment-bullish/30",
+  },
+  Neutral: {
+    icon: Minus,
+    className:
+      "bg-sentiment-neutral/15 text-sentiment-neutral border-sentiment-neutral/30",
+  },
+};
 
 const impactBadgeClass: Record<string, string> = {
-  HIGH: 'bg-primary/15 text-primary border-primary/30',
-  MEDIUM: 'bg-impact-medium/15 text-impact-medium border-impact-medium/30',
-  LOW: 'border-border text-muted-foreground',
-}
+  HIGH: "bg-primary/15 text-primary border-primary/30",
+  MEDIUM: "bg-impact-medium/15 text-impact-medium border-impact-medium/30",
+  LOW: "border-border text-muted-foreground",
+};
 
 function timeAgo(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime()
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  return `${hrs}h ago`
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ago`;
 }
 
 const NewsCard = ({ item, index }: NewsCardProps) => {
-  const sc = sentimentConfig[item.sentiment]
-  const SentimentIcon = sc.icon
+  const sc = sentimentConfig[item.sentiment];
+  const SentimentIcon = sc.icon;
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1, ease: 'easeOut' }}
+      transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
       whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
       className={`glass-card p-3.5 cursor-pointer transition-colors duration-200 hover:border-primary/20 ${impactClass[item.impact]}`}
     >
@@ -90,7 +102,7 @@ const NewsCard = ({ item, index }: NewsCardProps) => {
         </div>
       </div>
     </motion.article>
-  )
-}
+  );
+};
 
-export default NewsCard
+export default NewsCard;

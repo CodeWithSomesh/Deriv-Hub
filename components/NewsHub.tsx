@@ -1,26 +1,26 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Newspaper, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
-import type { NewsItem } from '@/lib/services/marketService'
-import NewsCard from './NewsCard'
-import NewsSkeleton from './NewsSkeleton'
-import { Button } from './ui/button'
+import { useState } from "react";
+import { Newspaper, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import type { NewsItem } from "@/lib/services/marketService";
+import NewsCard from "./NewsCard";
+import NewsSkeleton from "./NewsSkeleton";
+import { Button } from "./ui/button";
 
 interface NewsHubProps {
-  news: NewsItem[]
-  isLoading: boolean
-  compact?: boolean
+  news: NewsItem[];
+  isLoading: boolean;
+  compact?: boolean;
 }
 
 const NewsHub = ({ news, isLoading, compact = false }: NewsHubProps) => {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const highCount = news.filter((n) => n.impact === 'HIGH').length
+  const [isExpanded, setIsExpanded] = useState(false);
+  const highCount = news.filter((n) => n.impact === "HIGH").length;
 
   // In compact mode, show only 4 items initially
-  const displayLimit = compact && !isExpanded ? 4 : news.length
-  const displayedNews = news.slice(0, displayLimit)
-  const hasMore = news.length > displayLimit
+  const displayLimit = compact && !isExpanded ? 4 : news.length;
+  const displayedNews = news.slice(0, displayLimit);
+  const hasMore = news.length > displayLimit;
 
   return (
     <section className="flex flex-col h-full">
@@ -39,13 +39,17 @@ const NewsHub = ({ news, isLoading, compact = false }: NewsHubProps) => {
         )}
       </div>
 
-      <div className={`flex-1 overflow-y-auto space-y-2.5 pr-1 ${compact && !isExpanded ? '' : ''}`}>
+      <div
+        className={`flex-1 overflow-y-auto space-y-2.5 pr-1 ${compact && !isExpanded ? "" : ""}`}
+      >
         {isLoading ? (
           <NewsSkeleton />
         ) : (
           <>
-            {displayedNews.map((item, i) => <NewsCard key={item.id} item={item} index={i} />)}
-            
+            {displayedNews.map((item, i) => (
+              <NewsCard key={item.id} item={item} index={i} />
+            ))}
+
             {compact && hasMore && (
               <Button
                 variant="outline"
@@ -69,7 +73,7 @@ const NewsHub = ({ news, isLoading, compact = false }: NewsHubProps) => {
         )}
       </div>
     </section>
-  )
-}
+  );
+};
 
-export default NewsHub
+export default NewsHub;
