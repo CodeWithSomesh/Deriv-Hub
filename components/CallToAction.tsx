@@ -1,17 +1,13 @@
-'use client'
-
+'use client';
 import helixImage from '@/assets/images/helix2.png'
 import emojiStarImage from '@/assets/images/emojistar.png'
 import Image from 'next/image';
 import {motion} from 'framer-motion'
 
-
 export const CallToAction = () => {
-
-
   return (
-    <div className="bg-black text-white py-[72px] sm:py-32 text-center overflow-hidden ">
-      <div className="container max-w-xl relative">
+    <div className="bg-black text-white py-[72px] sm:py-32 text-center overflow-hidden">
+      <div className="mx-auto  px max-w-xl relative">
 
         <motion.div  initial={{translateY: 0}}
           animate={{translateY: [0, -60, 0]}}
@@ -34,20 +30,17 @@ export const CallToAction = () => {
           <Image src={emojiStarImage} alt='' 
           className="absolute -top-[120px] right-[calc(100%+24px)]" />
         </motion.div>
-        
-        <h2 className="font-bold text-5xl sm:text-6xl tracking-tighter">Get Instant Access</h2>
-
-        <p className="text-xl text-white/70 mt-5">
-          Celebrate the joy of accomplishment with an app designed 
-          to track your progress and motivate your efforts.
+        <h2 className="font-bold text-4xl sm:text-5xl lg:text-6xl tracking-tighter">
+          Ready to Trade with AI Intelligence?
+        </h2>
+        <p className="text-lg sm:text-xl text-white/70 mt-5">
+          Join traders who are turning market chaos into clarity with DerivHub.
         </p>
-
-        <form action="" className="mt-10 flex flex-col gap-2.5 max-w-sm mx-auto sm:flex-row">
-          <input type="email" placeholder="your@email.com" 
-          className="h-12 bg-white/20 rounded-lg px-5 font-medium placeholder:text-[#9ca3af] sm:flex-1" />
-          
-          <button className="bg-white text-black h-12 rounded-lg font-semibold px-5">Get Access</button>
-        </form>
+        <div className="mt-10">
+          <a href='/dashboard' className="bg-[#FF444F] hover:bg-[#E63946] text-white font-semibold py-3 px-8 rounded-lg transition-colors shadow-[0_0_40px_rgba(255,68,79,0.2)]">
+            Get Started Free
+          </a>
+        </div>
       </div>
     </div>
   );

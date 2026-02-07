@@ -1,87 +1,88 @@
-"use client"
+'use client';
 
 import React from 'react';
-import { PlusIcon, MinusIcon } from './Icons'
-import {motion, AnimatePresence} from 'framer-motion'
+import { PlusIcon, MinusIcon } from './Icons';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const items = [
   {
-    question: "What payment methods do you accept?",
+    question: 'How does DerivHub analyze market movements?',
     answer:
-      "We accept all major credit cards, PayPal, and various other payment methods depending on your location. Please contact our support team for more information on accepted payment methods in your region.",
+      "DerivHub combines real-time news aggregation from multiple sources with technical pattern recognition. When a significant price movement occurs, our AI synthesizes recent news, economic events, and chart patterns to provide clear, actionable explanations in seconds.",
   },
   {
-    question: "How does the pricing work for teams?",
+    question: 'Will DerivHub block my trades?',
     answer:
-      "Our pricing is per user, per month. This means you only pay for the number of team members you have on your account. Discounts are available for larger teams and annual subscriptions.",
+      "No. DerivHub is supportive, not restrictive. We provide warnings and insights about emotional trading patterns, but you always maintain full control. Our AI coaches and advises — you make the final decisions.",
   },
   {
-    question: "Can I change my plan later?",
+    question: 'What trading instruments does DerivHub support?',
     answer:
-      "Yes, you can upgrade or downgrade your plan at any time. Changes to your plan will be prorated and reflected in your next billing cycle.",
+      "DerivHub works with all Deriv instruments including Forex (EUR/USD, GBP/USD, etc.), Synthetic Indices (Volatility 100, Crash/Boom), Cryptocurrencies, and Commodities. The AI adapts its analysis to each instrument type.",
   },
   {
-    question: "Is my data secure?",
+    question: 'How does the social content feature work?',
     answer:
-      "Security is our top priority. We use state-of-the-art encryption and comply with the best industry practices to ensure that your data is stored securely and accessed only by authorized users.",
+      "Select an AI persona (Calm Analyst, Data Nerd, or Trading Coach) and DerivHub transforms market insights into platform-specific content. Get professional LinkedIn posts and concise Twitter threads ready to copy and share — building your reputation as an informed trader.",
+  },
+  {
+    question: 'Is my trading data secure?',
+    answer:
+      "Absolutely. All trade analysis happens locally in your browser extension. We only send anonymized pattern data to our AI for analysis. Your account credentials and personal information never leave your device.",
   },
 ];
 
-const AccordianItem = ({question, answer}: {question: string; answer:string;}) => {
-  
+const AccordionItem = ({
+  question,
+  answer,
+}: {
+  question: string;
+  answer: string;
+}) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  
-  return (
-    <div key={question} className='py-7 border-b border-white/30'
-    onClick={()=> setIsOpen(!isOpen)}>
-      <div className='flex items-center'>
-        <span className='flex-1 text-lg font-bold'>{question}</span>
-        {isOpen ? <MinusIcon /> : <PlusIcon />}
-      </div>
 
+  return (
+    <div
+      className="py-6 border-b border-white/20 cursor-pointer"
+      onClick={() => setIsOpen(!isOpen)}
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex-1 text-base sm:text-lg font-bold text-white pr-4">
+          {question}
+        </span>
+        <span className="text-[#FF444F] flex-shrink-0">
+          {isOpen ? <MinusIcon /> : <PlusIcon />}
+        </span>
+      </div>
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
-            initial={{
-              opacity: 0,
-              height: 0,
-              marginTop: 0,
-            }} 
-            animate={{
-              opacity: 1,
-              height: "auto",
-              marginTop: "16px",
-            }}
-            exit={{
-              opacity: 0,
-              height: 0,
-              marginTop: 0,
-            }} >
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: '12px' }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            className="text-white/80 text-sm sm:text-base leading-relaxed"
+          >
             {answer}
           </motion.div>
         )}
       </AnimatePresence>
-
-      
     </div>
-  )
-}
+  );
+};
 
 export const FAQs = () => {
   return (
-    <div className="bg-black text-white bg-gradient-to-b from-[#5D2CAB] to-black py-[72px] sm:py-24">
-      <div className="container">
-        <h2 className='text-center text-5xl sm:text-6xl sm:max-w-[648px] mx-auto font-bold tracking-tighter'>
+    <div id="faq" className="bg-[#1A1A1F] text-white bg-gradient-to-b from-[#ea0c1b] to-black py-[72px] sm:py-24 ">
+      <div className="max-w-3xl mx-auto px-6">
+        <h2 className="text-center text-4xl sm:text-5xl font-bold tracking-tighter">
           Frequently Asked Questions
         </h2>
-
-        <div className='mt-12 max-w-[648px] mx-auto'>
-          {items.map(({question, answer}) => (
-            <AccordianItem question={question} answer={answer} key={question} />
+        <div className="mt-12">
+          {items.map(({ question, answer }) => (
+            <AccordionItem key={question} question={question} answer={answer} />
           ))}
         </div>
       </div>
-
     </div>
   );
 };
