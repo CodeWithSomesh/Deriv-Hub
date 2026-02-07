@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -20,9 +20,21 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Copy, Edit3, Eye, TrendingUp, Linkedin, Twitter, Sparkles, Save, X } from 'lucide-react'
+import { Copy, Edit3, Linkedin, Twitter, Sparkles, Save, X, RefreshCw } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+
+interface TopicItem {
+  value: string
+  label: string
+  newsSource?: string
+  actualSources?: string[]
+  primarySource?: string
+  lastUpdated?: number
+  newsReleaseDate?: number
+  sourceNews?: any[]
+  context?: string
+}
 
 export default function SocialStudioPage() {
   const [isGenerating, setIsGenerating] = useState(false)
@@ -48,6 +60,202 @@ export default function SocialStudioPage() {
   const [error, setError] = useState('')
   const [usedProvider, setUsedProvider] = useState('')
   const [previewPlatform, setPreviewPlatform] = useState<'linkedin' | 'twitter'>('linkedin')
+  
+  // Dynamic topics state
+  const [topics, setTopics] = useState<TopicItem[]>([
+    { value: 'market-highlights', label: 'Market Highlights & Analysis', newsSource: 'Default Topics', actualSources: [], primarySource: 'Default Topics', lastUpdated: Date.now() },
+    { value: 'educational-content', label: 'Trading Education & Concepts', newsSource: 'Default Topics', actualSources: [], primarySource: 'Default Topics', lastUpdated: Date.now() },
+    { value: 'market-psychology', label: 'Market Psychology & Risk Management', newsSource: 'Default Topics', actualSources: [], primarySource: 'Default Topics', lastUpdated: Date.now() },
+    { value: 'economic-indicators', label: 'Economic Indicators & Data', newsSource: 'Default Topics', actualSources: [], primarySource: 'Default Topics', lastUpdated: Date.now() },
+    { value: 'crypto-education', label: 'Cryptocurrency Education', newsSource: 'Default Topics', actualSources: [], primarySource: 'Default Topics', lastUpdated: Date.now() },
+    { value: 'forex-fundamentals', label: 'Forex Market Fundamentals', newsSource: 'Default Topics', actualSources: [], primarySource: 'Default Topics', lastUpdated: Date.now() }
+  ])
+  const [isLoadingTopics, setIsLoadingTopics] = useState(false)
+  const [topicsLastUpdated, setTopicsLastUpdated] = useState<number | null>(null)
+  const [topicsSource, setTopicsSource] = useState('fallback')
+
+  // Fetch dynamic topics from API
+  const fetchTopics = useCallback(async (isManual = false) => {
+    setIsLoadingTopics(true)
+    
+    try {
+      const response = await fetch('/api/social/topics', {
+        method: isManual ? 'POST' : 'GET',
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch topics')
+      }
+      
+      const data = await response.json()
+
+      console.log('Topics data:', data)
+      // Save current selection before updating topics
+      const currentValue = selectedTopic
+      
+      setTopics(data.topics)
+      setTopicsLastUpdated(data.lastUpdated)
+      setTopicsSource(data.source)
+      
+      // Restore selection if it still exists in new topics
+      const topicStillExists = data.topics.some((topic: any) => topic.value === currentValue)
+      if (!topicStillExists && currentValue) {
+        // If current selection no longer exists, keep it but show warning
+        toast.info('Your selected topic has been updated. Please review the new options.')
+      }
+      
+      // Save to localStorage for offline fallback
+      localStorage.setItem('dynamicTopics', JSON.stringify({
+        topics: data.topics,
+        lastUpdated: data.lastUpdated,
+        source: data.source
+      }))
+      
+      if (isManual) {
+        toast.success(`Topics refreshed! Found ${data.topics.length} new topics from ${data.source === 'dynamic' ? 'financial news' : 'fallback data'}`)
+      }
+      
+    } catch (error: any) {
+      console.error('Failed to fetch topics:', error)
+      
+      // Try to load from localStorage as fallback
+      const cached = localStorage.getItem('dynamicTopics')
+      if (cached) {
+        const cachedData = JSON.parse(cached)
+        setTopics(cachedData.topics)
+        setTopicsLastUpdated(cachedData.lastUpdated)
+        setTopicsSource('cached')
+        
+        if (isManual) {
+          toast.warning('Using cached topics. Network unavailable.')
+        }
+      } else {
+        if (isManual) {
+          toast.error('Failed to refresh topics. Using default options.')
+        }
+      }
+    } finally {
+      setIsLoadingTopics(false)
+    }
+  }, [selectedTopic])
+
+  // Manual topic refresh
+  const handleRefreshTopics = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    fetchTopics(true)
+  }
+
+  // Helper function to format date for display
+  const formatTopicDate = (timestamp?: number): string => {
+    if (!timestamp) return 'Recent'
+    
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // Helper function to format source name with actual sources
+  const formatSourceName = (topic: TopicItem): string => {
+    // Use actual source if available
+    if (topic.primarySource && topic.primarySource !== 'Default Topics') {
+      // Format actual source display with count if multiple sources
+      if (topic.actualSources && topic.actualSources.length > 1) {
+        return `${topic.primarySource} +${topic.actualSources.length - 1}`
+      }
+      return topic.primarySource
+    }
+    
+    // Fallback to generic labels
+    if (!topic.newsSource || topic.newsSource === 'Default Topics') return 'Default'
+    if (topic.newsSource === 'Live Financial News') return 'Live News'
+    if (topic.newsSource === 'Finnhub') return 'Live News' // Backward compatibility
+    return topic.newsSource
+  }
+
+  // Global protection against copying flagged content
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (complianceStatus && !complianceStatus.isCompliant) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C' || e.key === 'a' || e.key === 'A' || e.key === 'x' || e.key === 'X')) {
+          e.preventDefault()
+          toast.error('Content copying is disabled for flagged content')
+        }
+      }
+    }
+
+    const handleGlobalCopy = (e: ClipboardEvent) => {
+      if (complianceStatus && !complianceStatus.isCompliant) {
+        e.preventDefault()
+        toast.error('Content copying is disabled for flagged content')
+      }
+    }
+
+    document.addEventListener('keydown', handleGlobalKeyDown)
+    document.addEventListener('copy', handleGlobalCopy)
+    document.addEventListener('cut', handleGlobalCopy)
+
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyDown)
+      document.removeEventListener('copy', handleGlobalCopy)
+      document.removeEventListener('cut', handleGlobalCopy)
+    }
+  }, [complianceStatus])
+
+  // Load topics on component mount
+  useEffect(() => {
+    // Try to load from localStorage first for fast loading
+    const cached = localStorage.getItem('dynamicTopics')
+    if (cached) {
+      try {
+        const cachedData = JSON.parse(cached)
+        const cacheAge = Date.now() - cachedData.lastUpdated
+        const SIX_HOURS = 6 * 60 * 60 * 1000
+        
+        if (cacheAge < SIX_HOURS) {
+          // Use cached data if less than 6 hours old
+          setTopics(cachedData.topics)
+          setTopicsLastUpdated(cachedData.lastUpdated)
+          setTopicsSource('cached')
+        } else {
+          // Cache is stale, fetch new topics
+          fetchTopics()
+        }
+      } catch (error) {
+        // Invalid cache, fetch new topics
+        fetchTopics()
+      }
+    } else {
+      // No cache, fetch new topics
+      fetchTopics()
+    }
+  }, [fetchTopics])
+
+  // Auto-refresh topics every 8 hours
+  useEffect(() => {
+    const SIX_HOURS = 8 * 60 * 60 * 1000 // 6 hours in milliseconds
+    
+    const interval = setInterval(() => {
+      fetchTopics()
+    }, SIX_HOURS)
+
+    return () => clearInterval(interval)
+  }, [fetchTopics])
 
   const handleGenerateContent = async () => {
     setIsGenerating(true)
@@ -243,18 +451,52 @@ export default function SocialStudioPage() {
             <CardContent className="space-y-4">
               {/* Topic */}
               <div className="space-y-2">
-                <Label htmlFor="topic">Topic</Label>
-                <Select value={selectedTopic} onValueChange={setSelectedTopic}>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="topic">Topic</Label>
+                  <div className="flex items-center gap-2">
+                    {topicsLastUpdated && (
+                      <span className="text-xs text-muted-foreground">
+                        Updated {Math.floor((Date.now() - topicsLastUpdated) / (1000 * 60))}m ago
+                      </span>
+                    )}
+                    <button
+                      onClick={handleRefreshTopics}
+                      onMouseDown={(e) => e.preventDefault()}
+                      disabled={isLoadingTopics}
+                      className="p-1 rounded-md hover:bg-white/10 transition-colors disabled:opacity-50"
+                      title="Refresh live topics from latest financial news"
+                      type="button"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${isLoadingTopics ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+                <Select value={selectedTopic} onValueChange={setSelectedTopic} disabled={isLoadingTopics}>
                   <SelectTrigger className="dark:bg-input/30">
-                    <SelectValue placeholder="Select Market Highlights" />
+                    <SelectValue placeholder={isLoadingTopics ? "Loading latest topics..." : "Select live topic from financial news"} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="market-highlights">Market Highlights & Analysis</SelectItem>
-                    <SelectItem value="educational-content">Trading Education & Concepts</SelectItem>
-                    <SelectItem value="market-psychology">Market Psychology & Risk Management</SelectItem>
-                    <SelectItem value="economic-indicators">Economic Indicators & Data</SelectItem>
-                    <SelectItem value="crypto-education">Cryptocurrency Education</SelectItem>
-                    <SelectItem value="forex-fundamentals">Forex Market Fundamentals</SelectItem>
+                  <SelectContent className="max-h-none h-auto">
+                    {topics.map((topic) => (
+                      <SelectItem key={topic.value} value={topic.value}>
+                        <div className="flex items-start justify-between w-full min-w-0">
+                          <div className="flex items-center flex-1 pr-2">
+                            {(topic.newsSource === 'Live Financial News' || (topic.actualSources && topic.actualSources.length > 0)) && (
+                              <div className="w-2 h-2 bg-green-400 rounded-full mr-2 flex-shrink-0 animate-pulse" title="Live from financial news sources" />
+                            )}
+                            <span className="text-sm font-medium">{topic.label}</span>
+                          </div>
+                          <span 
+                            className="text-xs text-muted-foreground flex-shrink-0 whitespace-nowrap"
+                            title={topic.actualSources && topic.actualSources.length > 0 ? 
+                              `Sources: ${topic.actualSources.join(', ')}` : 
+                              `Source: ${formatSourceName(topic)}`
+                            }
+                          >
+                            ({formatSourceName(topic)} • {formatTopicDate(topic.newsReleaseDate)})
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -297,7 +539,7 @@ export default function SocialStudioPage() {
                   <SelectTrigger className="dark:bg-input/30">
                     <SelectValue placeholder="Select AI persona" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-none h-auto">
                     <SelectItem value="market-educator">The Market Educator - Educational & Informative</SelectItem>
                     <SelectItem value="data-analyst">The Data Analyst - Objective & Research-Focused</SelectItem>
                     <SelectItem value="risk-educator">The Risk Educator - Safety & Education Focused</SelectItem>
@@ -620,28 +862,6 @@ export default function SocialStudioPage() {
                   </div>
                 )}
 
-                <Separator className="my-4 bg-white/10" />
-
-                {/* Performance Metrics */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium">Your Performance</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 rounded-md bg-card/30 border border-white/5">
-                      <div className="flex items-center justify-center gap-1.5 text-2xl font-semibold text-[#FF444F] mb-1">
-                        <Eye className="h-5 w-5" />
-                        1,247
-                      </div>
-                      <p className="text-xs text-muted-foreground">Total Reach</p>
-                    </div>
-                    <div className="text-center p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
-                      <div className="flex items-center justify-center gap-1.5 text-2xl font-semibold text-amber-400 mb-1">
-                        <TrendingUp className="h-5 w-5" />
-                        4.2%
-                      </div>
-                      <p className="text-xs text-muted-foreground">Engagement Rate</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>

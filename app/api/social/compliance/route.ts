@@ -8,22 +8,81 @@ const ollama = new Ollama({
   host: process.env.OLLAMA_BASE_URL || 'http://localhost:11434' 
 })
 
+// Pre-check for obvious non-compliant patterns (keyword-based detection)
+function preCheckCompliance(content: string): { isCompliant: boolean, reason?: string } {
+  const lowerContent = content.toLowerCase()
+  
+  // Only check for most obvious direct recommendations
+  const directPatterns = [
+    /\b(buy now|sell now|buy immediately|sell immediately)\b/,
+    /\b(must buy|must sell)\b/,
+  ]
+  
+  // Extreme FOMO and pressure tactics (most problematic)
+  const fomoPatterns = [
+    /\b(hurry|act fast|get in now|jump in|don't wait)\b/,
+    /\b(before it's too late|limited time|won't last long)\b/,
+  ]
+  
+  // Extreme performance predictions (guarantees)
+  const predictionPatterns = [
+    /\b(guaranteed|sure thing|can't lose|risk-free)\b/,
+    /\b(going to moon|to the moon|massive gains)\b/,
+  ]
+  
+  const allPatterns = [
+    ...directPatterns, 
+    ...fomoPatterns, 
+    ...predictionPatterns
+  ]
+  
+  for (const pattern of allPatterns) {
+    if (pattern.test(lowerContent)) {
+      return {
+        isCompliant: false,
+        reason: `Content contains obvious non-compliant language detected by keyword analysis`
+      }
+    }
+  }
+  
+  return { isCompliant: true }
+}
+
 // Check compliance using Gemini AI (primary)
 async function checkComplianceWithGemini(content: string) {
   const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
-  const prompt = `You are a compliance checker for financial content. Analyze the following content and determine if it contains direct buy/sell signals, investment advice, or trading recommendations.
+  const prompt = `You are a nuanced, moderately strict compliance checker for financial content. Be thoughtful and balanced in your analysis - not overly permissive, but also not unnecessarily harsh. Focus on flagging content that contains clear financial advice or recommendations.
 
 CONTENT TO CHECK:
 "${content}"
 
-COMPLIANCE RULES:
-1. Content should NOT contain direct buy/sell recommendations
-2. Content should NOT tell people to invest in specific assets
-3. Content should NOT use phrases like "buy now", "sell immediately", "invest in", "purchase", "go long", "go short"
-4. Content should focus on education, analysis, and general market insights
-5. Neutral language like "analysts suggest", "data shows", "according to reports" is acceptable
-6. Questions to engage discussion are acceptable
+COMPLIANCE RULES - FLAG AS NON-COMPLIANT IF CONTENT CONTAINS:
+
+DIRECT FINANCIAL ADVICE (ALWAYS FLAG):
+1. Explicit buy/sell recommendations: "buy now", "sell immediately", "should invest in", "time to purchase"
+2. Direct trading instructions: "go long on", "short this stock", "exit your position"
+3. Specific timing advice: "buy before earnings", "sell at resistance level"
+
+STRONG RECOMMENDATIONS (FLAG):
+4. Conditional advice: "if I were you, I'd buy", "you should consider investing in"
+5. FOMO pressure: "hurry before it's too late", "limited time opportunity", "act fast"
+6. Performance guarantees: "guaranteed returns", "sure thing", "can't lose", "risk-free"
+
+ACCEPTABLE CONTENT (DO NOT FLAG):
+- General market observations: "Bitcoin has risen 10%", "analysts expect volatility"
+- Educational content: "diversification reduces risk", "understand your risk tolerance"
+- Historical analysis: "traditionally, gold performs well during uncertainty"
+- Neutral discussions: "some investors prefer", "market sentiment suggests"
+- Opinion sharing without advice: "I think", "I believe", "in my view" (when not giving direct advice)
+- Analytical terms: "bullish sentiment", "bearish trends", "market looks attractive" (when used analytically)
+
+BE NUANCED AND MODERATELY STRICT:
+- Consider context and intent, not just keywords
+- Educational and analytical content should generally pass
+- Focus on protecting against direct advice and strong recommendations
+- Allow market commentary and educational discussions
+- When in doubt about borderline cases, lean slightly towards compliance for educational content
 
 RESPONSE FORMAT:
 Respond with ONLY a JSON object in this exact format:
@@ -51,18 +110,37 @@ Do not include any other text, explanations, or formatting - just the JSON objec
 
 // Check compliance using Ollama (fallback)
 async function checkComplianceWithOllama(content: string) {
-  const prompt = `You are a compliance checker for financial content. Analyze the following content and determine if it contains direct buy/sell signals, investment advice, or trading recommendations.
+  const prompt = `You are a nuanced, moderately strict compliance checker for financial content. Be thoughtful and balanced in your analysis - not overly permissive, but also not unnecessarily harsh. Focus on flagging content that contains clear financial advice or recommendations.
 
 CONTENT TO CHECK:
 "${content}"
 
-COMPLIANCE RULES:
-1. Content should NOT contain direct buy/sell recommendations
-2. Content should NOT tell people to invest in specific assets
-3. Content should NOT use phrases like "buy now", "sell immediately", "invest in", "purchase", "go long", "go short"
-4. Content should focus on education, analysis, and general market insights
-5. Neutral language like "analysts suggest", "data shows", "according to reports" is acceptable
-6. Questions to engage discussion are acceptable
+COMPLIANCE RULES - FLAG AS NON-COMPLIANT IF CONTENT CONTAINS:
+
+DIRECT FINANCIAL ADVICE (ALWAYS FLAG):
+1. Explicit buy/sell recommendations: "buy now", "sell immediately", "time to purchase"
+2. Direct trading instructions: "go long on", "short this stock", "exit your position"
+3. Specific timing advice: "buy before", "sell at resistance level"
+
+STRONG RECOMMENDATIONS (FLAG):
+4. Conditional advice: "if I were you, I'd buy", "you should consider investing in"
+5. FOMO pressure: "hurry before it's too late", "limited time opportunity", "act fast"
+6. Performance guarantees: "guaranteed returns", "sure thing", "can't lose", "risk-free"
+
+ACCEPTABLE CONTENT (DO NOT FLAG):
+- General market observations: "Bitcoin has risen 10%", "analysts expect volatility"
+- Educational content: "diversification reduces risk", "understand your risk tolerance"
+- Historical analysis: "traditionally, gold performs well during uncertainty"
+- Neutral discussions: "some investors prefer", "market sentiment suggests"
+- Opinion sharing without advice: "I think", "I believe", "in my view" (when not giving direct advice)
+- Analytical terms: "bullish sentiment", "bearish trends", "market looks attractive" (when used analytically)
+
+BE NUANCED AND MODERATELY STRICT:
+- Consider context and intent, not just keywords
+- Educational and analytical content should generally pass
+- Focus on protecting against direct advice and strong recommendations
+- Allow market commentary and educational discussions
+- When in doubt about borderline cases, lean slightly towards compliance for educational content
 
 RESPONSE FORMAT:
 Respond with ONLY a JSON object in this exact format:
@@ -77,8 +155,8 @@ Do not include any other text, explanations, or formatting - just the JSON objec
     model: process.env.OLLAMA_MODEL || 'llama3.2:3b',
     prompt: prompt,
     options: {
-      temperature: 0.1,
-      num_predict: 100,
+      temperature: 0.1, // Slightly more flexible for nuanced analysis
+      num_predict: 150, // Allow slightly more tokens for detailed reasons
     }
   })
 
@@ -105,6 +183,15 @@ export async function POST(request: NextRequest) {
         { error: 'Content is required and must be a string' },
         { status: 400 }
       )
+    }
+
+    // First, do a quick keyword-based pre-check for obvious violations only
+    const preCheck = preCheckCompliance(content)
+    if (!preCheck.isCompliant) {
+      return NextResponse.json({
+        isCompliant: false,
+        reason: preCheck.reason
+      })
     }
 
     let complianceResult = null

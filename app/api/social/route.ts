@@ -15,7 +15,7 @@ const ollama = new Ollama({
 // })
 
 // Generate content using Gemini AI (primary)
-async function generateWithGemini(topic: string, platform: string, persona: string, includeEmojis: boolean, additionalContext?: string) {
+async function generateWithGemini(topic: string, platform: string, persona: string, includeEmojis: boolean, additionalContext?: string, topicContext?: string) {
   // Use stable gemini-pro model to avoid quota issues
   const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
@@ -26,6 +26,7 @@ PERSONA: ${persona}
 PLATFORM: ${platform}
 EMOJIS: ${includeEmojis ? 'Include relevant emojis to make content engaging and visually appealing' : 'Do NOT use any emojis - plain text only'}
 ${additionalContext ? `ADDITIONAL CONTEXT: ${additionalContext}` : ''}
+${topicContext ? `\n${topicContext}` : ''}
 
 PERSONA GUIDELINES:
 - Market Educator: Educational, informative, teaching-focused
@@ -64,7 +65,7 @@ Generate educational, neutral content that informs rather than advises. Respond 
 }
 
 // Generate content using Ollama (fallback)
-async function generateWithOllama(topic: string, platform: string, persona: string, includeEmojis: boolean, additionalContext?: string) {
+async function generateWithOllama(topic: string, platform: string, persona: string, includeEmojis: boolean, additionalContext?: string, topicContext?: string) {
   const prompt = `You are an AI content creator for financial education. Your role is to create educational, neutral content that informs rather than advises.
 
 PERSONA GUIDELINES:
@@ -102,6 +103,7 @@ PERSONA: ${persona}
 PLATFORM: ${platform}
 EMOJIS: ${includeEmojis ? 'Include relevant emojis to make content engaging and visually appealing' : 'Do NOT use any emojis - plain text only'}
 ${additionalContext ? `ADDITIONAL CONTEXT: ${additionalContext}` : ''}
+${topicContext ? `\n${topicContext}` : ''}
 
 WORD LIMIT: ${platform === 'twitter' ? '280 characters' : '300 words'}
 
@@ -300,6 +302,23 @@ export async function GET(request: NextRequest) {
 }
 
 // POST: Generate social media content
+// Function to fetch topic context
+async function getTopicContext(topicValue: string): Promise<string> {
+  try {
+    // Fetch current topics with context
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/social/topics`)
+    if (!response.ok) return ''
+    
+    const data = await response.json()
+    const matchingTopic = data.topics?.find((t: any) => t.value === topicValue)
+    
+    return matchingTopic?.context || ''
+  } catch (error) {
+    console.error('Failed to fetch topic context:', error)
+    return ''
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { topic, platform, persona, includeEmojis, additionalContext } = await request.json()
@@ -311,13 +330,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Fetch topic context to prevent hallucination
+    console.log('🔄 Fetching topic context for grounded generation...')
+    const topicContext = await getTopicContext(topic)
+    if (topicContext) {
+      console.log('✅ Topic context retrieved successfully')
+    } else {
+      console.log('⚠️ No topic context found, using basic generation')
+    }
+
     let content = ''
     let provider = ''
 
     // Try Gemini first (primary)
     try {
       console.log('Attempting content generation with Gemini...')
-      content = await generateWithGemini(topic, platform, persona, includeEmojis, additionalContext)
+      content = await generateWithGemini(topic, platform, persona, includeEmojis, additionalContext, topicContext)
       provider = 'Gemini'
       console.log('✅ Gemini generation successful')
     } catch (geminiError: any) {
@@ -326,7 +354,7 @@ export async function POST(request: NextRequest) {
       // Fallback to Ollama
       try {
         console.log('🔄 Falling back to Ollama...')
-        content = await generateWithOllama(topic, platform, persona, includeEmojis, additionalContext)
+        content = await generateWithOllama(topic, platform, persona, includeEmojis, additionalContext, topicContext)
         provider = 'Ollama'
         console.log('✅ Ollama fallback successful')
       } catch (ollamaError: any) {
