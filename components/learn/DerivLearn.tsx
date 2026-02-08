@@ -1,7 +1,16 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, Search, TrendingUp, Clock, Library, X, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  GraduationCap,
+  Search,
+  TrendingUp,
+  Clock,
+  Library,
+  X,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { fetchDerivVideos } from "@/lib/services/youtubeService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,12 +24,22 @@ interface DerivLearnProps {
   setActiveTopic: (topic: string | null) => void;
 }
 
-const TOPICS = ["Forex", "Crypto", "Indices", "Commodities", "Volatility", "Risk Management"];
+const TOPICS = [
+  "Forex",
+  "Crypto",
+  "Indices",
+  "Commodities",
+  "Volatility",
+  "Risk Management",
+  "Technical Analysis",
+  "Platform",
+  "Multipliers",
+];
 
 export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  
+
   // Store filter state to detect changes
   const filterKey = `${activeTopic}-${searchQuery}-${activeTab}`;
   const [lastFilterKey, setLastFilterKey] = useState(filterKey);
@@ -28,7 +47,7 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
 
   // Reset expanded state when filters change (derived, not in effect)
   const actualIsExpanded = filterKey === lastFilterKey ? isExpanded : false;
-  
+
   // Update last filter key when expanded is toggled
   const handleExpandToggle = () => {
     setLastFilterKey(filterKey);
@@ -53,20 +72,23 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter((v) =>
-        v.title.toLowerCase().includes(query) ||
-        v.channel.toLowerCase().includes(query) ||
-        v.topic?.toLowerCase().includes(query)
+      result = result.filter(
+        (v) =>
+          v.title.toLowerCase().includes(query) ||
+          v.channel.toLowerCase().includes(query) ||
+          v.topic?.toLowerCase().includes(query),
       );
     }
 
     // Apply tab filter/sort
     if (activeTab === "trending") {
-      result = result.filter((v) => v.views).sort((a, b) => {
-        const viewsA = parseInt(a.views?.replace(/[^0-9]/g, '') || '0');
-        const viewsB = parseInt(b.views?.replace(/[^0-9]/g, '') || '0');
-        return viewsB - viewsA;
-      });
+      result = result
+        .filter((v) => v.views)
+        .sort((a, b) => {
+          const viewsA = parseInt(a.views?.replace(/[^0-9]/g, "") || "0");
+          const viewsB = parseInt(b.views?.replace(/[^0-9]/g, "") || "0");
+          return viewsB - viewsA;
+        });
     } else if (activeTab === "recent") {
       result = result.reverse();
     }
@@ -76,7 +98,7 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
 
   const topicCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    videos.forEach(v => {
+    videos.forEach((v) => {
       if (v.topic) counts[v.topic] = (counts[v.topic] || 0) + 1;
     });
     return counts;
@@ -102,7 +124,9 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <div className="text-2xl font-bold text-primary">{videos.length}</div>
+              <div className="text-2xl font-bold text-primary">
+                {videos.length}
+              </div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
                 Total Videos
               </div>
@@ -134,7 +158,11 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
           </div>
 
           {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-auto"
+          >
             <TabsList className="bg-secondary/50 border border-border/50">
               <TabsTrigger value="all" className="gap-1.5">
                 <Library className="h-3.5 w-3.5" />
@@ -154,7 +182,9 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
 
         {/* Topic Filter Chips */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground font-medium">Topics:</span>
+          <span className="text-xs text-muted-foreground font-medium">
+            Topics:
+          </span>
           <AnimatePresence>
             {TOPICS.map((topic) => (
               <motion.div
@@ -170,11 +200,15 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
                       ? "bg-primary/15 text-primary border-primary/50 glow-border-high"
                       : "hover:bg-secondary border-border/50 hover:border-primary/30"
                   }`}
-                  onClick={() => setActiveTopic(activeTopic === topic ? null : topic)}
+                  onClick={() =>
+                    setActiveTopic(activeTopic === topic ? null : topic)
+                  }
                 >
                   {topic}
                   {topicCounts[topic] && (
-                    <span className="ml-1.5 opacity-70">({topicCounts[topic]})</span>
+                    <span className="ml-1.5 opacity-70">
+                      ({topicCounts[topic]})
+                    </span>
                   )}
                 </Badge>
               </motion.div>
@@ -208,12 +242,15 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
             >
               <AnimatePresence mode="popLayout">
-                {(actualIsExpanded ? filteredVideos : filteredVideos.slice(0, 8)).map((video, i) => (
+                {(actualIsExpanded
+                  ? filteredVideos
+                  : filteredVideos.slice(0, 8)
+                ).map((video, i) => (
                   <VideoCard key={video.id} video={video} index={i} />
                 ))}
               </AnimatePresence>
             </motion.div>
-            
+
             {/* See More Button */}
             {filteredVideos.length > 8 && (
               <div className="flex justify-center pt-2">
@@ -243,13 +280,15 @@ export function DerivLearn({ activeTopic, setActiveTopic }: DerivLearnProps) {
             <div className="p-4 rounded-full bg-secondary/50 mb-4">
               <GraduationCap className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-base font-medium text-foreground mb-2">No videos found</h3>
+            <h3 className="text-base font-medium text-foreground mb-2">
+              No videos found
+            </h3>
             <p className="text-sm text-muted-foreground mb-4 max-w-md">
               {searchQuery
                 ? `No results for "${searchQuery}"`
                 : activeTopic
-                ? `No videos found for topic "${activeTopic}"`
-                : "No videos available at the moment"}
+                  ? `No videos found for topic "${activeTopic}"`
+                  : "No videos available at the moment"}
             </p>
             {(searchQuery || activeTopic) && (
               <Button

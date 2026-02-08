@@ -8,6 +8,7 @@ export interface NewsItem {
   timestamp: string;
   source: string;
   tags: string[];
+  url?: string;
 }
 
 const MOCK_MARKET_DATA: NewsItem[] = [
@@ -22,6 +23,7 @@ const MOCK_MARKET_DATA: NewsItem[] = [
     timestamp: new Date(Date.now() - 25 * 60_000).toISOString(),
     source: "Bureau of Labor Statistics",
     tags: ["CPI", "Inflation", "Fed", "Macro"],
+    url: "https://www.bls.gov/cpi/",
   },
   {
     id: "mock-002",
@@ -34,6 +36,7 @@ const MOCK_MARKET_DATA: NewsItem[] = [
     timestamp: new Date(Date.now() - 52 * 60_000).toISOString(),
     source: "Reuters",
     tags: ["Gold", "Technical", "Support"],
+    url: "https://www.reuters.com/markets/",
   },
   {
     id: "mock-003",
@@ -46,6 +49,7 @@ const MOCK_MARKET_DATA: NewsItem[] = [
     timestamp: new Date(Date.now() - 78 * 60_000).toISOString(),
     source: "CoinDesk",
     tags: ["Bitcoin", "Crypto", "ETF"],
+    url: "https://www.coindesk.com/",
   },
   {
     id: "mock-004",
@@ -58,6 +62,7 @@ const MOCK_MARKET_DATA: NewsItem[] = [
     timestamp: new Date(Date.now() - 95 * 60_000).toISOString(),
     source: "Bloomberg",
     tags: ["Forex", "ECB", "Euro"],
+    url: "https://www.bloomberg.com/markets",
   },
   {
     id: "mock-005",
@@ -70,6 +75,7 @@ const MOCK_MARKET_DATA: NewsItem[] = [
     timestamp: new Date(Date.now() - 120 * 60_000).toISOString(),
     source: "CoinGecko",
     tags: ["Ethereum", "Crypto", "ETF"],
+    url: "https://www.coingecko.com/",
   },
 ];
 
@@ -91,9 +97,18 @@ function mapSentiment(label: string): NewsItem["sentiment"] {
 
 function assignImpact(item: AlphaVantageItem): NewsItem["impact"] {
   const text = `${item.title} ${item.summary}`.toLowerCase();
-  if (text.includes("cpi") || text.includes("inflation") || text.includes("fed") || text.includes("fomc"))
+  if (
+    text.includes("cpi") ||
+    text.includes("inflation") ||
+    text.includes("fed") ||
+    text.includes("fomc")
+  )
     return "HIGH";
-  if (text.includes("support") || text.includes("resistance") || text.includes("break"))
+  if (
+    text.includes("support") ||
+    text.includes("resistance") ||
+    text.includes("break")
+  )
     return "MEDIUM";
   return "LOW";
 }
@@ -112,7 +127,7 @@ export async function fetchMarketNews(): Promise<NewsItem[]> {
 
     const res = await fetch(
       `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=financial_markets&apikey=${apiKey}`,
-      { signal: controller.signal }
+      { signal: controller.signal },
     );
     clearTimeout(timeout);
 
@@ -135,8 +150,8 @@ export async function fetchMarketNews(): Promise<NewsItem[]> {
         ? new Date(
             item.time_published.replace(
               /(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/,
-              "$1-$2-$3T$4:$5:$6"
-            )
+              "$1-$2-$3T$4:$5:$6",
+            ),
           ).toISOString()
         : new Date().toISOString(),
       source: item.source ?? "Alpha Vantage",
@@ -155,7 +170,7 @@ export function generateAIResponse(query: string, news: NewsItem[]): string {
     (n) =>
       n.tags.some((t) => ["CPI", "Inflation"].includes(t)) ||
       n.title.toLowerCase().includes("cpi") ||
-      n.title.toLowerCase().includes("inflation")
+      n.title.toLowerCase().includes("inflation"),
   );
 
   if (
@@ -170,7 +185,7 @@ export function generateAIResponse(query: string, news: NewsItem[]): string {
   }
 
   const goldNews = news.filter(
-    (n) => n.asset === "XAUUSD" || n.tags.includes("Gold")
+    (n) => n.asset === "XAUUSD" || n.tags.includes("Gold"),
   );
   if (q.includes("gold") || q.includes("xau")) {
     if (goldNews.length > 0) {
@@ -179,7 +194,10 @@ export function generateAIResponse(query: string, news: NewsItem[]): string {
   }
 
   const btcNews = news.filter(
-    (n) => n.asset === "BTCUSD" || n.tags.includes("Bitcoin") || n.tags.includes("Crypto")
+    (n) =>
+      n.asset === "BTCUSD" ||
+      n.tags.includes("Bitcoin") ||
+      n.tags.includes("Crypto"),
   );
   if (q.includes("bitcoin") || q.includes("btc") || q.includes("crypto")) {
     if (btcNews.length > 0) {
@@ -188,7 +206,12 @@ export function generateAIResponse(query: string, news: NewsItem[]): string {
   }
 
   // Risk management / volatility / losing money
-  if (q.includes("risk") || q.includes("losing") || q.includes("loss") || q.includes("stop loss")) {
+  if (
+    q.includes("risk") ||
+    q.includes("losing") ||
+    q.includes("loss") ||
+    q.includes("stop loss")
+  ) {
     return `⚠️ **Risk Management Insight:**\n\nBased on current market conditions, here are key Risk Management principles:\n\n- Never risk more than 2% of your capital per trade\n- Use stop-loss orders on every position\n- Consider reducing position sizes during high-volatility events (like today's CPI)\n\n_I've filtered the learning videos to show Risk Management content for you._`;
   }
 
