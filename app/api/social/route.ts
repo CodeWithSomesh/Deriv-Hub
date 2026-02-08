@@ -37,18 +37,23 @@ PERSONA GUIDELINES:
 - Sigma Scalper: Stoic, ruthless, confident but still neutral
 - Hype-Beast: Aggressive, influential, energetic but still educational
 
-CRITICAL REQUIREMENTS:
-1. NEVER provide buy/sell signals, trading advice, or investment recommendations
-2. Focus on educational content, market analysis, and general insights
-3. Use neutral language like "analysts suggest", "market data shows", "according to reports"
-4. Include disclaimers about market volatility and risk
-5. End with engaging questions to promote discussion
-6. Keep content professional and informative (even with chaotic/satirical personas)
-7. Use relevant hashtags for ${platform}
-8. ${includeEmojis ? 'USE emojis strategically to enhance readability and engagement' : 'DO NOT use any emojis - text only'}
-9. DO NOT include any notes, meta-commentary, or explanations about the content itself
-10. DO NOT mention word limits, tone, or compliance in the response
-11. Provide ONLY the final social media post content
+CRITICAL COMPLIANCE REQUIREMENTS (MUST FOLLOW TO AVOID CONTENT FLAGGING):
+1. ABSOLUTELY NEVER use words like "buy", "sell", "purchase", "invest in", "should", "must", "need to", "have to"
+2. AVOID all direct recommendations, suggestions, hints, or implications about trading actions
+3. NEVER use phrases like "time to buy", "good opportunity", "don't miss", "act now", "limited time"
+4. DO NOT create FOMO (fear of missing out) or urgency in your content
+5. AVOID superlatives like "best", "guaranteed", "sure", "certain", "always", "never" (except in disclaimers)
+6. Use ONLY neutral, educational language: "data shows", "research indicates", "market trends suggest"
+7. Include risk disclaimers: "Markets are volatile", "Past performance doesn't guarantee future results"
+8. Focus on education, analysis, and information sharing - NOT advice or recommendations
+9. End with engaging questions to promote discussion, not action
+10. Keep content professional and informative (even with chaotic/satirical personas)
+11. Use relevant hashtags for ${platform}
+12. ${includeEmojis ? 'USE emojis strategically to enhance readability and engagement' : 'DO NOT use any emojis - text only'}
+13. DO NOT include any notes, meta-commentary, or explanations about the content itself
+14. DO NOT mention word limits, tone, or compliance in the response
+15. Provide ONLY the final social media post content
+16. Remember: Your content will be automatically checked for compliance - avoid anything that could be interpreted as financial advice
 
 CONTENT STRUCTURE:
 - Opening: Current market observation or educational insight
@@ -56,9 +61,16 @@ CONTENT STRUCTURE:
 - Engagement: Question to encourage discussion
 - Hashtags: 3-5 relevant tags
 
+COMPLIANT LANGUAGE EXAMPLES:
+✅ GOOD: "Market data indicates...", "Research suggests...", "Analysts are observing..."
+❌ BAD: "You should buy...", "This is a great opportunity...", "Don't miss this chance..."
+
+✅ GOOD: "What do you think about these market trends?"
+❌ BAD: "Are you ready to invest?", "Who's buying this dip?"
+
 WORD LIMIT: ${platform === 'twitter' ? '280 characters' : '300 words'}
 
-Generate educational, neutral content that informs rather than advises. Respond with ONLY the social media post content, no additional notes or explanations.`
+Generate educational, neutral content that informs rather than advises. Always prioritize education over speculation and maintain strict neutrality. Your content will be automatically scanned for compliance violations. Respond with ONLY the social media post content, no additional notes or explanations.`
 
   const result = await model.generateContent(prompt)
   return result.response.text()
@@ -77,24 +89,36 @@ PERSONA GUIDELINES:
 - Sigma Scalper: Stoic, ruthless, confident but still neutral
 - Hype-Beast: Aggressive, influential, energetic but still educational
 
-CRITICAL REQUIREMENTS:
-1. NEVER provide buy/sell signals, trading advice, or investment recommendations
-2. Focus on educational content, market analysis, and general insights
-3. Use neutral language like "analysts suggest", "market data shows", "according to reports"
-4. Include disclaimers about market volatility and risk
-5. End with engaging questions to promote discussion
-6. Keep content professional and informative (even with chaotic/satirical personas)
-7. Use relevant hashtags for the specified platform
-8. ${includeEmojis ? 'USE emojis strategically to enhance readability and engagement' : 'DO NOT use any emojis - text only'}
-9. DO NOT include any notes, meta-commentary, or explanations about the content itself
-10. DO NOT mention word limits, tone, or compliance in the response
-11. Provide ONLY the final social media post content
+CRITICAL COMPLIANCE REQUIREMENTS (MUST FOLLOW TO AVOID CONTENT FLAGGING):
+1. ABSOLUTELY NEVER use words like "buy", "sell", "purchase", "invest in", "should", "must", "need to", "have to"
+2. AVOID all direct recommendations, suggestions, hints, or implications about trading actions
+3. NEVER use phrases like "time to buy", "good opportunity", "don't miss", "act now", "limited time"
+4. DO NOT create FOMO (fear of missing out) or urgency in your content
+5. AVOID superlatives like "best", "guaranteed", "sure", "certain", "always", "never" (except in disclaimers)
+6. Use ONLY neutral, educational language: "data shows", "research indicates", "market trends suggest"
+7. Include risk disclaimers: "Markets are volatile", "Past performance doesn't guarantee future results"
+8. Focus on education, analysis, and information sharing - NOT advice or recommendations
+9. End with engaging questions to promote discussion, not action
+10. Keep content professional and informative (even with chaotic/satirical personas)
+11. Use relevant hashtags for the specified platform
+12. ${includeEmojis ? 'USE emojis strategically to enhance readability and engagement' : 'DO NOT use any emojis - text only'}
+13. DO NOT include any notes, meta-commentary, or explanations about the content itself
+14. DO NOT mention word limits, tone, or compliance in the response
+15. Provide ONLY the final social media post content
+16. Remember: Your content will be automatically checked for compliance - avoid anything that could be interpreted as financial advice
 
 CONTENT STRUCTURE:
 - Opening: Current market observation or educational insight
 - Body: 2-3 key educational points or market analysis
 - Engagement: Question to encourage discussion
 - Hashtags: 3-5 relevant tags
+
+COMPLIANT LANGUAGE EXAMPLES:
+✅ GOOD: "Market data indicates...", "Research suggests...", "Analysts are observing..."
+❌ BAD: "You should buy...", "This is a great opportunity...", "Don't miss this chance..."
+
+✅ GOOD: "What do you think about these market trends?"
+❌ BAD: "Are you ready to invest?", "Who's buying this dip?"
 
 Generate a ${platform} post with these specifications:
 
@@ -107,7 +131,7 @@ ${topicContext ? `\n${topicContext}` : ''}
 
 WORD LIMIT: ${platform === 'twitter' ? '280 characters' : '300 words'}
 
-Generate educational, neutral content that informs rather than advises. Always prioritize education over speculation and maintain neutrality. Respond with ONLY the social media post content, no additional notes or explanations.`
+Generate educational, neutral content that informs rather than advises. Always prioritize education over speculation and maintain strict neutrality. Your content will be automatically scanned for compliance violations. Respond with ONLY the social media post content, no additional notes or explanations.`
 
   const response = await ollama.generate({
     model: process.env.OLLAMA_MODEL || 'llama3.2:3b',
@@ -302,21 +326,81 @@ export async function GET(request: NextRequest) {
 }
 
 // POST: Generate social media content
-// Function to fetch topic context
+// Function to fetch topic context with fallback
 async function getTopicContext(topicValue: string): Promise<string> {
   try {
-    // Fetch current topics with context
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/social/topics`)
-    if (!response.ok) return ''
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    console.log(`🔍 Fetching topic context from: ${baseUrl}/api/social/topics for topic: ${topicValue}`)
+    
+    // Fetch current topics with context (with timeout)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+    
+    const response = await fetch(`${baseUrl}/api/social/topics`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-cache', // Ensure we get fresh data
+      signal: controller.signal
+    })
+    
+    clearTimeout(timeout)
+    
+    if (!response.ok) {
+      console.error(`❌ Failed to fetch topics - Status: ${response.status} ${response.statusText}`)
+      return generateFallbackContext(topicValue)
+    }
     
     const data = await response.json()
-    const matchingTopic = data.topics?.find((t: any) => t.value === topicValue)
+    console.log(`📊 Found ${data.topics?.length || 0} topics, source: ${data.source}`)
     
-    return matchingTopic?.context || ''
-  } catch (error) {
-    console.error('Failed to fetch topic context:', error)
-    return ''
+    if (!data.topics || !Array.isArray(data.topics)) {
+      console.error('❌ Invalid topics data structure received')
+      return generateFallbackContext(topicValue)
+    }
+    
+    const matchingTopic = data.topics.find((t: any) => t.value === topicValue)
+    
+    if (matchingTopic && matchingTopic.context) {
+      console.log(`✅ Topic context found for: ${topicValue} (length: ${matchingTopic.context.length} chars)`)
+      return matchingTopic.context
+    } else {
+      console.log(`⚠️ No matching topic found for value: ${topicValue}`)
+      console.log(`Available topic values: ${data.topics.map((t: any) => t.value).slice(0, 5).join(', ')}${data.topics.length > 5 ? '...' : ''}`)
+      return generateFallbackContext(topicValue)
+    }
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      console.error('❌ Topic context fetch timeout (10s)')
+    } else {
+      console.error('❌ Failed to fetch topic context:', error?.message || error)
+    }
+    return generateFallbackContext(topicValue)
   }
+}
+
+// Generate fallback context when API fetch fails
+function generateFallbackContext(topicValue: string): string {
+  const topicLabel = topicValue.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  
+  return `GENERAL MARKET CONTEXT:
+This content is about ${topicLabel} in the financial markets. Key educational points to consider:
+
+• Market conditions change rapidly and past performance doesn't guarantee future results
+• Multiple factors influence market movements including economic data, geopolitical events, and sentiment
+• Educational content should focus on analysis and insights rather than specific trading advice
+• Always consider risk management and do your own research
+
+This is educational content designed to inform readers about market trends and financial concepts. Market volatility is normal and should be expected.`
+}
+
+// Alternative method using direct database/cache access (future enhancement)
+async function getTopicContextDirect(topicValue: string): Promise<string> {
+  // This could be implemented to read from a local cache or database
+  // to avoid network calls for better reliability
+  console.log('🔄 Direct topic context access not implemented yet, using API fallback')
+  return generateFallbackContext(topicValue)
 }
 
 export async function POST(request: NextRequest) {
@@ -331,12 +415,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch topic context to prevent hallucination
-    console.log('🔄 Fetching topic context for grounded generation...')
+    console.log(`🔄 Fetching topic context for grounded generation... Topic: "${topic}"`)
     const topicContext = await getTopicContext(topic)
     if (topicContext) {
-      console.log('✅ Topic context retrieved successfully')
+      console.log(`✅ Topic context retrieved successfully (${topicContext.length} characters)`)
+      console.log(`📄 Context preview: ${topicContext.substring(0, 100)}...`)
     } else {
       console.log('⚠️ No topic context found, using basic generation')
+      console.log('🔍 This could be due to: 1) Topic not found in API response, 2) Network error, 3) Missing context in topic data')
     }
 
     let content = ''

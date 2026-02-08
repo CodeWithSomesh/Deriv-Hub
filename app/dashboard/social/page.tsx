@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Copy, Edit3, Linkedin, Twitter, Sparkles, Save, X, RefreshCw } from 'lucide-react'
+import { Copy, Edit3, Linkedin, Twitter, Sparkles, Save, X, RefreshCw, ChevronUp, Info, FileText } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 
@@ -60,6 +60,11 @@ export default function SocialStudioPage() {
   const [error, setError] = useState('')
   const [usedProvider, setUsedProvider] = useState('')
   const [previewPlatform, setPreviewPlatform] = useState<'linkedin' | 'twitter'>('linkedin')
+  
+  // News context state
+  const [showNewsContext, setShowNewsContext] = useState(false)
+  const [newsContext, setNewsContext] = useState('')
+  const [isLoadingContext, setIsLoadingContext] = useState(false)
   
   // Dynamic topics state
   const [topics, setTopics] = useState<TopicItem[]>([
@@ -188,6 +193,26 @@ export default function SocialStudioPage() {
     return topic.newsSource
   }
 
+  // Handler functions for copy protection
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (complianceStatus && !complianceStatus.isCompliant) {
+      // Prevent Ctrl+A, Ctrl+C, Ctrl+V, etc.
+      if (e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+        e.preventDefault()
+        toast.error('Text selection and copying is disabled for flagged content')
+        return
+      }
+    }
+  }
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (complianceStatus && !complianceStatus.isCompliant) {
+      e.preventDefault()
+      toast.error('Right-click menu is disabled for flagged content')
+      return false
+    }
+  }
+
   // Global protection against copying flagged content
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -214,6 +239,41 @@ export default function SocialStudioPage() {
       document.removeEventListener('keydown', handleGlobalKeyDown)
       document.removeEventListener('copy', handleGlobalCopy)
       document.removeEventListener('cut', handleGlobalCopy)
+    }
+  }, [complianceStatus])
+
+  // Screenshot detection and warning
+  useEffect(() => {
+    if (!complianceStatus || complianceStatus.isCompliant) return
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // User might be taking a screenshot or switching apps
+        console.warn('Screenshot attempt detected on flagged content')
+        toast.warning('Screenshot detection: This content is flagged and should not be copied or shared')
+      }
+    }
+
+    const handleKeyboardShortcut = (e: KeyboardEvent) => {
+      // Detect common screenshot shortcuts
+      if (
+        (e.metaKey || e.ctrlKey) && 
+        (e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) || // Mac screenshot shortcuts
+        (e.key === 'PrintScreen') || // Windows screenshot
+        (e.altKey && e.key === 'PrintScreen') // Alt+PrintScreen
+      ) {
+        e.preventDefault()
+        toast.error('Screenshots are blocked for flagged content')
+        return false
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('keydown', handleKeyboardShortcut, { capture: true })
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      document.removeEventListener('keydown', handleKeyboardShortcut, { capture: true })
     }
   }, [complianceStatus])
 
@@ -256,6 +316,14 @@ export default function SocialStudioPage() {
 
     return () => clearInterval(interval)
   }, [fetchTopics])
+
+  // Clear news context when topic changes
+  useEffect(() => {
+    if (selectedTopic) {
+      setShowNewsContext(false)
+      setNewsContext('')
+    }
+  }, [selectedTopic])
 
   const handleGenerateContent = async () => {
     setIsGenerating(true)
@@ -418,6 +486,113 @@ export default function SocialStudioPage() {
     }
   }
 
+  const fetchNewsContext = async () => {
+    if (!selectedTopic) {
+      toast.error('Please select a topic first')
+      return
+    }
+
+    if (showNewsContext) {
+      setShowNewsContext(false)
+      return
+    }
+
+    setIsLoadingContext(true)
+    try {
+      console.log(`🔍 Frontend: Fetching context for topic: "${selectedTopic}"`)
+      
+      // First, try to get context from current topics state (faster)
+      const localTopic = topics.find(t => t.value === selectedTopic)
+      if (localTopic && localTopic.context && localTopic.context.trim()) {
+        console.log(`✅ Frontend: Found context in local state (${localTopic.context.length} characters)`)
+        setNewsContext(localTopic.context)
+        setShowNewsContext(true)
+        toast.success(`News context loaded from cache (${localTopic.context.length} characters)`)
+        setIsLoadingContext(false)
+        return
+      }
+      
+      console.log('📡 Frontend: Local context not found, fetching from API...')
+      
+      const response = await fetch('/api/social/topics', {
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch topics - Status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log(`📊 Frontend: Received ${data.topics?.length || 0} topics from API, source: ${data.source}`)
+      
+      if (data.topics && Array.isArray(data.topics)) {
+        console.log('🔍 Frontend: Available topic values:', data.topics.map((t: any) => t.value).slice(0, 5))
+        
+        const matchingTopic = data.topics.find((t: any) => t.value === selectedTopic)
+        console.log(`🎯 Frontend: Matching topic found:`, matchingTopic ? 'YES' : 'NO')
+        
+        if (matchingTopic) {
+          console.log(`📄 Frontend: Topic data:`, {
+            label: matchingTopic.label,
+            hasContext: !!matchingTopic.context,
+            contextLength: matchingTopic.context?.length || 0,
+            hasSourceNews: !!matchingTopic.sourceNews,
+            sourceNewsLength: matchingTopic.sourceNews?.length || 0,
+            newsSource: matchingTopic.newsSource
+          })
+          
+          if (matchingTopic.context && matchingTopic.context.trim()) {
+            console.log(`📄 Frontend: Context preview: "${matchingTopic.context.substring(0, 100)}..."`)
+            setNewsContext(matchingTopic.context)
+            setShowNewsContext(true)
+            toast.success(`News context loaded successfully (${matchingTopic.context.length} characters)`)
+          } else {
+            // Fallback: try to construct context from sourceNews if available
+            if (matchingTopic.sourceNews && Array.isArray(matchingTopic.sourceNews) && matchingTopic.sourceNews.length > 0) {
+              console.log(`📰 Frontend: Using sourceNews as fallback (${matchingTopic.sourceNews.length} items)`)
+              const fallbackContext = `CURRENT MARKET CONTEXT:\n${matchingTopic.sourceNews.map((news: any) => 
+                `[${news.category?.toUpperCase() || 'NEWS'}] ${news.headline || 'Market Update'}: ${news.summary?.substring(0, 200) || 'Financial market development'}`
+              ).join('\n\n')}\n\nThis topic should be based on the above real financial news to avoid hallucination and provide accurate, current market insights.`
+              
+              setNewsContext(fallbackContext)
+              setShowNewsContext(true)
+              toast.success('News context constructed from source data')
+            } else if (matchingTopic.newsSource === 'Default Topics') {
+              // Generate context for default topics
+              const topicLabel = matchingTopic.label || selectedTopic.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+              const defaultContext = `GENERAL MARKET CONTEXT:\nThis is an educational topic about ${topicLabel}. Key points to consider:\n\n• Market conditions change rapidly and past performance doesn't guarantee future results\n• Multiple factors influence market movements including economic data, geopolitical events, and sentiment\n• Educational content should focus on analysis and insights rather than specific trading advice\n• Always consider risk management and do your own research\n\nThis is educational content designed to inform readers about market trends and financial concepts. Market volatility is normal and should be expected.`
+              
+              setNewsContext(defaultContext)
+              setShowNewsContext(true)
+              toast.info('Showing general educational context for default topic')
+            } else {
+              setNewsContext('No news context available for this topic. This may be a default topic or the context data is not yet available.')
+              setShowNewsContext(true)
+              toast.info('No specific news context found for this topic')
+            }
+          }
+        } else {
+          setNewsContext(`Topic "${selectedTopic}" not found in current topics list.\n\nAvailable topics: ${data.topics.map((t: any) => `${t.value} (${t.label})`).slice(0, 3).join(', ')}${data.topics.length > 3 ? '...' : ''}`)
+          setShowNewsContext(true)
+          toast.warning('Selected topic not found in current topics')
+        }
+      } else {
+        throw new Error('Invalid response format from topics API')
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Frontend: Failed to fetch news context:', error)
+      setNewsContext(`Error loading context: ${error?.message || 'Unknown error'}\n\nThis could be due to:\n• Network connectivity issues\n• API server problems\n• Invalid topic selection\n\nPlease try refreshing the topics or selecting a different topic.`)
+      setShowNewsContext(true)
+      toast.error('Failed to load news context')
+    } finally {
+      setIsLoadingContext(false)
+    }
+  }
+
   const handleCancelEdit = () => {
     setEditedContent({
       linkedin: generatedContent.linkedin,
@@ -429,6 +604,71 @@ export default function SocialStudioPage() {
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
+      {/* CSS for extreme screenshot protection */}
+      <style jsx>{`
+        @keyframes screenshotProtection {
+          0% { 
+            opacity: 0.5; 
+            transform: translateX(-100%) rotate(0deg); 
+            filter: blur(1px);
+          }
+          25% { 
+            opacity: 0.8; 
+            transform: translateX(0%) rotate(5deg); 
+            filter: blur(3px);
+          }
+          50% { 
+            opacity: 0.3; 
+            transform: translateX(50%) rotate(-3deg); 
+            filter: blur(2px);
+          }
+          75% { 
+            opacity: 0.9; 
+            transform: translateX(-50%) rotate(2deg); 
+            filter: blur(4px);
+          }
+          100% { 
+            opacity: 0.6; 
+            transform: translateX(100%) rotate(-1deg); 
+            filter: blur(1px);
+          }
+        }
+        @keyframes chaosInterference {
+          0% { transform: skew(2deg, 1deg) scale(1); }
+          20% { transform: skew(-1deg, 2deg) scale(1.02); }
+          40% { transform: skew(1deg, -1deg) scale(0.98); }
+          60% { transform: skew(-2deg, 1deg) scale(1.01); }
+          80% { transform: skew(1deg, -2deg) scale(0.99); }
+          100% { transform: skew(-1deg, 1deg) scale(1); }
+        }
+        @keyframes textDestroy {
+          0% { 
+            letter-spacing: 8px; 
+            word-spacing: 20px; 
+            filter: blur(2px) contrast(300%);
+          }
+          25% { 
+            letter-spacing: 12px; 
+            word-spacing: 30px; 
+            filter: blur(4px) contrast(400%);
+          }
+          50% { 
+            letter-spacing: 15px; 
+            word-spacing: 40px; 
+            filter: blur(6px) contrast(500%);
+          }
+          75% { 
+            letter-spacing: 10px; 
+            word-spacing: 25px; 
+            filter: blur(3px) contrast(350%);
+          }
+          100% { 
+            letter-spacing: 8px; 
+            word-spacing: 20px; 
+            filter: blur(2px) contrast(300%);
+          }
+        }
+      `}</style>
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -744,22 +984,254 @@ export default function SocialStudioPage() {
                   </div>
                 )}
                 
-                <div className="p-4 rounded-md bg-card/30 border border-white/5 text-sm leading-relaxed min-h-[200px] transition-all duration-200">
+                <div 
+                  className={`p-4 rounded-md bg-card/30 border border-white/5 text-sm leading-relaxed min-h-[200px] transition-all duration-200 relative ${
+                    complianceStatus && !complianceStatus.isCompliant ? 'overflow-hidden' : ''
+                  }`}
+                >
+                  {/* Screenshot Protection Overlay - Only shown when flagged */}
+                  {complianceStatus && !complianceStatus.isCompliant && (
+                    <div className="absolute inset-0 pointer-events-none z-10">
+                      {/* Extreme noise overlay to make content completely unreadable */}
+                      <div 
+                        className="absolute inset-0 opacity-70 bg-gradient-to-br from-red-500/50 via-red-500/30 to-red-500/50 animate-pulse"
+                        style={{
+                          backgroundImage: `
+                            radial-gradient(circle at 25% 25%, rgba(255, 68, 79, 0.6) 8px, transparent 8px),
+                            radial-gradient(circle at 75% 75%, rgba(255, 68, 79, 0.5) 10px, transparent 10px),
+                            radial-gradient(circle at 50% 50%, rgba(255, 68, 79, 0.4) 6px, transparent 6px),
+                            radial-gradient(circle at 10% 90%, rgba(255, 68, 79, 0.3) 12px, transparent 12px),
+                            radial-gradient(circle at 90% 10%, rgba(255, 68, 79, 0.45) 7px, transparent 7px),
+                            radial-gradient(circle at 33% 66%, rgba(255, 68, 79, 0.35) 9px, transparent 9px),
+                            radial-gradient(circle at 66% 33%, rgba(255, 68, 79, 0.4) 11px, transparent 11px),
+                            linear-gradient(45deg, rgba(255, 68, 79, 0.3) 50%, transparent 50%),
+                            linear-gradient(-45deg, rgba(255, 68, 79, 0.25) 50%, transparent 50%),
+                            linear-gradient(90deg, rgba(255, 68, 79, 0.2) 40%, transparent 40%),
+                            linear-gradient(0deg, rgba(255, 68, 79, 0.3) 35%, transparent 35%),
+                            conic-gradient(from 45deg, rgba(255, 68, 79, 0.4), transparent, rgba(255, 68, 79, 0.4))
+                          `,
+                          backgroundSize: '15px 15px, 18px 18px, 12px 12px, 25px 25px, 20px 20px, 22px 22px, 16px 16px, 8px 8px, 10px 10px, 6px 6px, 14px 14px, 30px 30px',
+                          mixBlendMode: 'multiply'
+                        }}
+                      />
+                      
+                      {/* Additional animated interference layer */}
+                      <div 
+                        className="absolute inset-0 opacity-50"
+                        style={{
+                          backgroundImage: `
+                            repeating-linear-gradient(90deg, 
+                              rgba(255, 68, 79, 0.4) 0px, 
+                              rgba(255, 68, 79, 0.4) 2px, 
+                              transparent 2px, 
+                              transparent 6px),
+                            repeating-linear-gradient(0deg, 
+                              rgba(255, 68, 79, 0.3) 0px, 
+                              rgba(255, 68, 79, 0.3) 1px, 
+                              transparent 1px, 
+                              transparent 4px)
+                          `,
+                          animation: 'screenshotProtection 2s ease-in-out infinite alternate'
+                        }}
+                      />
+                      
+                      {/* Ultimate chaos layer - makes content completely unreadable */}
+                      <div 
+                        className="absolute inset-0 opacity-60"
+                        style={{
+                          backgroundImage: `
+                            repeating-conic-gradient(from 0deg, 
+                              rgba(255, 68, 79, 0.5) 0deg 30deg,
+                              transparent 30deg 60deg,
+                              rgba(255, 68, 79, 0.3) 60deg 90deg,
+                              transparent 90deg 120deg),
+                            repeating-radial-gradient(circle at 30% 70%,
+                              rgba(255, 68, 79, 0.4) 0px 15px,
+                              transparent 15px 30px),
+                            repeating-linear-gradient(45deg,
+                              rgba(255, 68, 79, 0.6) 0px 3px,
+                              transparent 3px 12px,
+                              rgba(255, 68, 79, 0.4) 12px 15px,
+                              transparent 15px 24px)
+                          `,
+                          backgroundSize: '40px 40px, 60px 60px, 20px 20px',
+                          animation: 'chaosInterference 1.5s linear infinite reverse',
+                          mixBlendMode: 'overlay'
+                        }}
+                      />
+                      
+                      {/* Moving scan lines */}
+                      <div 
+                        className="absolute inset-0 opacity-40"
+                        style={{
+                          background: `
+                            repeating-linear-gradient(0deg,
+                              transparent 0px 5px,
+                              rgba(255, 68, 79, 0.8) 5px 6px,
+                              transparent 6px 11px,
+                              rgba(255, 68, 79, 0.6) 11px 12px)
+                          `,
+                          animation: 'screenshotProtection 1s linear infinite'
+                        }}
+                      />
+                      {/* Dense watermark overlays covering entire area */}
+                      <div className="absolute inset-0 select-none pointer-events-none overflow-hidden">
+                        <div className="absolute top-0 left-0 text-red-500/25 text-6xl font-black transform -rotate-45 animate-pulse">
+                          FLAGGED CONTENT
+                        </div>
+                        <div className="absolute top-1/6 right-0 text-red-500/20 text-4xl font-black transform rotate-30 animate-pulse" style={{ animationDelay: '0.5s' }}>
+                          DO NOT COPY
+                        </div>
+                        <div className="absolute top-1/3 left-1/6 text-red-500/30 text-7xl font-black transform -rotate-30 animate-pulse" style={{ animationDelay: '1s' }}>
+                          RESTRICTED
+                        </div>
+                        <div className="absolute top-1/2 right-1/6 text-red-500/22 text-5xl font-black transform rotate-45 animate-pulse" style={{ animationDelay: '1.5s' }}>
+                          COMPLIANCE
+                        </div>
+                        <div className="absolute top-2/3 left-0 text-red-500/28 text-6xl font-black transform -rotate-60 animate-pulse" style={{ animationDelay: '2s' }}>
+                          BLOCKED
+                        </div>
+                        <div className="absolute bottom-1/6 right-1/3 text-red-500/18 text-4xl font-black transform rotate-60 animate-pulse" style={{ animationDelay: '2.5s' }}>
+                          FLAGGED
+                        </div>
+                        <div className="absolute bottom-0 left-1/3 text-red-500/25 text-5xl font-black transform -rotate-15 animate-pulse" style={{ animationDelay: '3s' }}>
+                          REVIEW
+                        </div>
+                        <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-red-500/35 text-8xl font-black animate-pulse" style={{ animationDelay: '1.2s' }}>
+                          ⚠️
+                        </div>
+                        <div className="absolute bottom-1/4 right-1/2 transform translate-x-1/2 text-red-500/30 text-7xl font-black transform rotate-180 animate-pulse" style={{ animationDelay: '2.8s' }}>
+                          🚫
+                        </div>
+                        <div className="absolute top-1/8 left-3/4 text-red-500/20 text-3xl font-black transform rotate-75 animate-pulse" style={{ animationDelay: '0.8s' }}>
+                          PROTECTED
+                        </div>
+                        <div className="absolute bottom-1/8 left-1/8 text-red-500/15 text-3xl font-black transform -rotate-75 animate-pulse" style={{ animationDelay: '3.5s' }}>
+                          SECURED
+                        </div>
+                      </div>
+                      {/* Heavy interference strips to make text completely unreadable */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        <div className="h-full w-full">
+                          {/* Dense horizontal interference lines */}
+                          <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-transparent via-red-500/40 to-transparent animate-pulse" />
+                          <div className="absolute top-6 left-0 w-full h-2 bg-gradient-to-r from-transparent via-red-500/30 to-transparent animate-pulse" style={{ animationDelay: '0.3s' }} />
+                          <div className="absolute top-12 left-0 w-full h-3 bg-gradient-to-r from-transparent via-red-500/35 to-transparent animate-pulse" style={{ animationDelay: '0.6s' }} />
+                          <div className="absolute top-18 left-0 w-full h-2 bg-gradient-to-r from-transparent via-red-500/25 to-transparent animate-pulse" style={{ animationDelay: '0.9s' }} />
+                          <div className="absolute top-24 left-0 w-full h-4 bg-gradient-to-r from-transparent via-red-500/45 to-transparent animate-pulse" style={{ animationDelay: '1.2s' }} />
+                          <div className="absolute top-32 left-0 w-full h-2 bg-gradient-to-r from-transparent via-red-500/30 to-transparent animate-pulse" style={{ animationDelay: '1.5s' }} />
+                          <div className="absolute top-40 left-0 w-full h-3 bg-gradient-to-r from-transparent via-red-500/35 to-transparent animate-pulse" style={{ animationDelay: '1.8s' }} />
+                          <div className="absolute bottom-40 left-0 w-full h-4 bg-gradient-to-r from-transparent via-red-500/40 to-transparent animate-pulse" style={{ animationDelay: '2.1s' }} />
+                          <div className="absolute bottom-32 left-0 w-full h-2 bg-gradient-to-r from-transparent via-red-500/28 to-transparent animate-pulse" style={{ animationDelay: '2.4s' }} />
+                          <div className="absolute bottom-24 left-0 w-full h-3 bg-gradient-to-r from-transparent via-red-500/33 to-transparent animate-pulse" style={{ animationDelay: '2.7s' }} />
+                          <div className="absolute bottom-16 left-0 w-full h-4 bg-gradient-to-r from-transparent via-red-500/38 to-transparent animate-pulse" style={{ animationDelay: '3s' }} />
+                          <div className="absolute bottom-8 left-0 w-full h-2 bg-gradient-to-r from-transparent via-red-500/25 to-transparent animate-pulse" style={{ animationDelay: '3.3s' }} />
+                          
+                          {/* Dense vertical interference lines */}
+                          <div className="absolute top-0 left-0 w-3 h-full bg-gradient-to-b from-transparent via-red-500/25 to-transparent animate-pulse" style={{ animationDelay: '0.4s' }} />
+                          <div className="absolute top-0 left-1/6 w-2 h-full bg-gradient-to-b from-transparent via-red-500/20 to-transparent animate-pulse" style={{ animationDelay: '0.8s' }} />
+                          <div className="absolute top-0 left-1/4 w-4 h-full bg-gradient-to-b from-transparent via-red-500/30 to-transparent animate-pulse" style={{ animationDelay: '1.2s' }} />
+                          <div className="absolute top-0 left-1/3 w-2 h-full bg-gradient-to-b from-transparent via-red-500/18 to-transparent animate-pulse" style={{ animationDelay: '1.6s' }} />
+                          <div className="absolute top-0 left-1/2 w-3 h-full bg-gradient-to-b from-transparent via-red-500/25 to-transparent animate-pulse" style={{ animationDelay: '2s' }} />
+                          <div className="absolute top-0 left-2/3 w-2 h-full bg-gradient-to-b from-transparent via-red-500/22 to-transparent animate-pulse" style={{ animationDelay: '2.4s' }} />
+                          <div className="absolute top-0 left-3/4 w-4 h-full bg-gradient-to-b from-transparent via-red-500/28 to-transparent animate-pulse" style={{ animationDelay: '2.8s' }} />
+                          <div className="absolute top-0 right-1/6 w-2 h-full bg-gradient-to-b from-transparent via-red-500/20 to-transparent animate-pulse" style={{ animationDelay: '3.2s' }} />
+                          <div className="absolute top-0 right-0 w-3 h-full bg-gradient-to-b from-transparent via-red-500/25 to-transparent animate-pulse" style={{ animationDelay: '3.6s' }} />
+                          
+                          {/* Heavy diagonal interference */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-transparent to-red-500/20 animate-pulse" style={{ animationDelay: '2.5s' }} />
+                          <div className="absolute inset-0 bg-gradient-to-tr from-red-500/15 via-transparent to-red-500/15 animate-pulse" style={{ animationDelay: '3.2s' }} />
+                          
+                          {/* Chaotic interference patterns */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-red-500/25 to-red-500/10 animate-pulse" style={{ animationDelay: '1.7s', transform: 'rotate(15deg)' }} />
+                          <div className="absolute inset-0 bg-gradient-to-l from-red-500/12 via-red-500/20 to-red-500/12 animate-pulse" style={{ animationDelay: '2.3s', transform: 'rotate(-10deg)' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {generatedContent.linkedin || generatedContent.twitter ? (
                     <div className="space-y-3">
                       {!isEditing ? (
-                        <div className="whitespace-pre-wrap transition-opacity duration-200">
+                        <div 
+                          className={`whitespace-pre-wrap transition-all duration-200 relative ${
+                            complianceStatus && !complianceStatus.isCompliant 
+                              ? 'select-none pointer-events-none filter blur-[12px] opacity-15 contrast-300 saturate-300 brightness-200 hue-rotate-30 sepia-50 invert-25 animate-pulse' 
+                              : ''
+                          }`}
+                          style={{
+                            ...(complianceStatus && !complianceStatus.isCompliant 
+                              ? { 
+                                  userSelect: 'none',
+                                  WebkitUserSelect: 'none',
+                                  MozUserSelect: 'none',
+                                  msUserSelect: 'none',
+                                  textShadow: '0 0 25px rgba(255, 68, 79, 1), 0 0 50px rgba(255, 68, 79, 0.8), 0 0 75px rgba(255, 68, 79, 0.6), 0 0 100px rgba(255, 68, 79, 0.4)',
+                                  letterSpacing: '8px',
+                                  wordSpacing: '20px',
+                                  lineHeight: '4',
+                                  transform: 'skew(-5deg, 3deg) scale(1.2) rotate(1deg)',
+                                  filter: 'drop-shadow(5px 5px 10px rgba(255, 68, 79, 0.5)) blur(2px)',
+                                  fontWeight: '100',
+                                  fontSize: '0.7em',
+                                  color: 'transparent',
+                                  textStroke: '1px rgba(255, 68, 79, 0.3)',
+                                  WebkitTextStroke: '1px rgba(255, 68, 79, 0.3)',
+                                  animation: 'textDestroy 3s ease-in-out infinite, chaosInterference 2s linear infinite'
+                                } 
+                              : {})
+                          }}
+                          onKeyDown={complianceStatus && !complianceStatus.isCompliant ? handleKeyDown : undefined}
+                          onContextMenu={complianceStatus && !complianceStatus.isCompliant ? handleContextMenu : undefined}
+                          onMouseDown={complianceStatus && !complianceStatus.isCompliant ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+                          onDragStart={complianceStatus && !complianceStatus.isCompliant ? (e: React.DragEvent) => e.preventDefault() : undefined}
+                          onDrop={complianceStatus && !complianceStatus.isCompliant ? (e: React.DragEvent) => e.preventDefault() : undefined}
+                        >
                           {generatedContent[previewPlatform]}
                         </div>
                       ) : (
                         <textarea
                           value={editedContent[previewPlatform]}
-                          onChange={(e) => setEditedContent(prev => ({
+                          onChange={complianceStatus && !complianceStatus.isCompliant ? undefined : (e) => setEditedContent(prev => ({
                             ...prev,
                             [previewPlatform]: e.target.value
                           }))}
-                          className="w-full min-h-[150px] bg-transparent border border-white/10 rounded-md p-3 text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#FF444F] focus:border-transparent"
-                          placeholder="Edit your content here..."
+                          disabled={!!(complianceStatus && !complianceStatus.isCompliant)}
+                          className={`w-full min-h-[150px] bg-transparent border border-white/10 rounded-md p-3 text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#FF444F] focus:border-transparent ${
+                            complianceStatus && !complianceStatus.isCompliant 
+                              ? 'select-none pointer-events-none filter blur-[12px] opacity-15 contrast-300 saturate-300 brightness-200 hue-rotate-30 sepia-50 invert-25 cursor-not-allowed animate-pulse' 
+                              : ''
+                          }`}
+                          style={{
+                            ...(complianceStatus && !complianceStatus.isCompliant 
+                              ? { 
+                                  userSelect: 'none',
+                                  WebkitUserSelect: 'none',
+                                  MozUserSelect: 'none',
+                                  msUserSelect: 'none',
+                                  textShadow: '0 0 25px rgba(255, 68, 79, 1), 0 0 50px rgba(255, 68, 79, 0.8), 0 0 75px rgba(255, 68, 79, 0.6), 0 0 100px rgba(255, 68, 79, 0.4)',
+                                  letterSpacing: '8px',
+                                  wordSpacing: '20px',
+                                  lineHeight: '4',
+                                  transform: 'skew(-5deg, 3deg) scale(1.2) rotate(1deg)',
+                                  filter: 'drop-shadow(5px 5px 10px rgba(255, 68, 79, 0.5)) blur(2px)',
+                                  fontWeight: '100',
+                                  fontSize: '0.7em',
+                                  color: 'transparent',
+                                  textStroke: '1px rgba(255, 68, 79, 0.3)',
+                                  WebkitTextStroke: '1px rgba(255, 68, 79, 0.3)',
+                                  animation: 'textDestroy 3s ease-in-out infinite, chaosInterference 2s linear infinite'
+                                } 
+                              : {})
+                          }}
+                          onKeyDown={complianceStatus && !complianceStatus.isCompliant ? handleKeyDown : undefined}
+                          onContextMenu={complianceStatus && !complianceStatus.isCompliant ? handleContextMenu : undefined}
+                          onMouseDown={complianceStatus && !complianceStatus.isCompliant ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+                          onDragStart={complianceStatus && !complianceStatus.isCompliant ? (e: React.DragEvent) => e.preventDefault() : undefined}
+                          onDrop={complianceStatus && !complianceStatus.isCompliant ? (e: React.DragEvent) => e.preventDefault() : undefined}
+                          onCopy={complianceStatus && !complianceStatus.isCompliant ? (e: React.ClipboardEvent) => e.preventDefault() : undefined}
+                          onCut={complianceStatus && !complianceStatus.isCompliant ? (e: React.ClipboardEvent) => e.preventDefault() : undefined}
+                          placeholder={complianceStatus && !complianceStatus.isCompliant ? "Content editing disabled - flagged for compliance" : "Edit your content here..."}
                         />
                       )}
                       
@@ -775,14 +1247,28 @@ export default function SocialStudioPage() {
                         </div>
                       )}
 
-                      {/* Edit Mode Controls */}
+                      {/* Edit Mode Controls - Always clear and visible */}
                       {isEditing && (
-                        <div className="flex gap-2 pt-2 border-t border-white/10">
+                        <div 
+                          className="flex gap-2 pt-2 border-t border-white/10 relative z-50 bg-gray-900/90 backdrop-blur-sm rounded-md p-2"
+                          style={{ 
+                            filter: 'none !important',
+                            opacity: '1 !important',
+                            transform: 'none !important',
+                            animation: 'none !important'
+                          }}
+                        >
                           <Button
                             size="sm"
                             onClick={handleSaveEdit}
                             disabled={isCheckingCompliance}
-                            className="bg-[#FF444F] hover:bg-[#E63946] text-white"
+                            className="bg-[#FF444F] hover:bg-[#E63946] text-white shadow-lg border border-[#FF444F]/30 relative z-50"
+                            style={{ 
+                              filter: 'none !important',
+                              opacity: '1 !important',
+                              transform: 'none !important',
+                              animation: 'none !important'
+                            }}
                           >
                             {isCheckingCompliance ? (
                               <>
@@ -801,7 +1287,13 @@ export default function SocialStudioPage() {
                             variant="outline"
                             onClick={handleCancelEdit}
                             disabled={isCheckingCompliance}
-                            className="border-white/20 hover:bg-white/10"
+                            className="border-white/20 hover:bg-white/10 shadow-lg relative z-50"
+                            style={{ 
+                              filter: 'none !important',
+                              opacity: '1 !important',
+                              transform: 'none !important',
+                              animation: 'none !important'
+                            }}
                           >
                             <X className="h-3 w-3 mr-1.5" />
                             Cancel
@@ -859,6 +1351,52 @@ export default function SocialStudioPage() {
                       <Edit3 className="h-4 w-4 mr-1.5" />
                       Edit
                     </Button>
+                  </div>
+                )}
+
+                {/* View News Context Button */}
+                {(generatedContent.linkedin || generatedContent.twitter) && (
+                  <div className="mt-4 pt-3 border-t border-white/10">
+                    <button
+                      onClick={fetchNewsContext}
+                      disabled={isLoadingContext}
+                      className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 underline underline-offset-4 hover:no-underline transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoadingContext ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400" />
+                          Loading Context...
+                        </>
+                      ) : showNewsContext ? (
+                        <>
+                          <ChevronUp className="w-4 h-4" />
+                          Hide News Context
+                        </>
+                      ) : (
+                        <>
+                          <Info className="w-4 h-4" />
+                          View News Context
+                        </>
+                      )}
+                    </button>
+
+                    {/* News Context Display */}
+                    {showNewsContext && newsContext && (
+                      <div className="mt-3 p-4 bg-gray-800/50 border border-white/10 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="w-4 h-4 text-blue-400" />
+                          <h4 className="text-sm font-medium text-blue-400">
+                            News Context for: {topics.find(t => t.value === selectedTopic)?.label || selectedTopic}
+                          </h4>
+                        </div>
+                        <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-900/50 p-3 rounded border border-white/5 max-h-60 overflow-y-auto">
+                          {newsContext}
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          This context is used by the AI to generate grounded, factual content based on real financial news.
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

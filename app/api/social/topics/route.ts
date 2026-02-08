@@ -783,7 +783,10 @@ export async function GET(request: NextRequest) {
       newsSource: 'Default Topics',
       actualSources: [],
       primarySource: 'Default Topics',
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
+      newsReleaseDate: Date.now(),
+      sourceNews: [],
+      context: `GENERAL MARKET CONTEXT:\nThis is a general educational topic about ${topic.label}. Market conditions are constantly changing and this content is for educational purposes only. Always conduct your own research and consider market volatility when making financial decisions.`
     }))
     
     return NextResponse.json({
