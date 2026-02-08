@@ -1,19 +1,19 @@
-import { motion } from 'framer-motion'
-import Image from 'next/image'
-import { Play, Eye, Clock } from 'lucide-react'
-import { type VideoItem } from '@/lib/services/youtubeService'
-import { Badge } from '@/components/ui/badge'
+import { motion } from "framer-motion";
+import Image from "next/image";
+import { Play, Eye, Clock } from "lucide-react";
+import { type VideoItem } from "@/lib/services/youtubeService";
+import { Badge } from "@/components/ui/badge";
 
 interface VideoCardProps {
-  video: VideoItem
-  index: number
+  video: VideoItem;
+  index: number;
 }
 
 export const VideoCard = ({ video, index }: VideoCardProps) => {
   const handleVideoClick = () => {
     // Open YouTube video in new tab
-    window.open(`https://www.youtube.com/watch?v=${video.id}`, '_blank');
-  }
+    window.open(`https://www.youtube.com/watch?v=${video.id}`, "_blank");
+  };
 
   return (
     <motion.div
@@ -35,10 +35,10 @@ export const VideoCard = ({ video, index }: VideoCardProps) => {
           className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
           loading="lazy"
         />
-        
+
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-linear-to-t from-background via-background/50 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300" />
-        
+
         {/* Duration Badge */}
         {video.duration && (
           <div className="absolute bottom-2 right-2 bg-background/95 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-mono text-foreground border border-border/50 flex items-center gap-1">
@@ -58,7 +58,7 @@ export const VideoCard = ({ video, index }: VideoCardProps) => {
             </Badge>
           </div>
         )}
-        
+
         {/* Play Button Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
           <motion.div
@@ -66,7 +66,10 @@ export const VideoCard = ({ video, index }: VideoCardProps) => {
             whileHover={{ scale: 1.1 }}
             className="w-16 h-16 rounded-full bg-primary flex items-center justify-center glow-primary shadow-2xl"
           >
-            <Play className="h-7 w-7 text-primary-foreground ml-1" fill="currentColor" />
+            <Play
+              className="h-7 w-7 text-primary-foreground ml-1"
+              fill="currentColor"
+            />
           </motion.div>
         </div>
       </div>
@@ -100,5 +103,5 @@ export const VideoCard = ({ video, index }: VideoCardProps) => {
       {/* Hover Accent Line */}
       <div className="h-0.5 bg-linear-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </motion.div>
-  )
-}
+  );
+};

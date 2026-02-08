@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from "@/components/ui/skeleton";
 
 const NewsSkeleton = () => (
   <div className="space-y-3">
@@ -19,6 +19,6 @@ const NewsSkeleton = () => (
       </div>
     ))}
   </div>
-)
+);
 
-export default NewsSkeleton
+export default NewsSkeleton;

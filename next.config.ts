@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Ensure Turbopack uses this repo as the root (avoids picking up parent lockfiles)
+  turbopack: {
+    root: __dirname,
+  },
   images: {
     remotePatterns: [
       {
