@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { MenuIcon } from './Icons';
+import { IconInnerShadowTop } from '@tabler/icons-react';
 
 const Navbar = () => {
   return (
@@ -7,7 +9,10 @@ const Navbar = () => {
         <div className="py-4 flex items-center justify-between">
           <div className="relative">
             <div className="absolute w-full top-2 bottom-0 bg-[#FF444F] opacity-20 blur-md rounded-full" />
-            <span className="relative text-xl font-bold text-white">Deriv<span className="text-[#FF444F]">Hub</span></span>
+            <Link href="/" className="flex items-center gap-2">
+                <IconInnerShadowTop className="!size-5 text-[#FF444F]" />
+                <span className="relative text-2xl font-bold text-white">Deriv<span className="bg-[#FF444F] text-black rounded-md font-black p-1 ml-1">Hub</span></span>
+            </Link>
           </div>
 
           <div className="border border-white/30 h-10 w-10 inline-flex items-center justify-center rounded-lg sm:hidden">

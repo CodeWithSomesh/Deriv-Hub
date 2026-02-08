@@ -15,7 +15,7 @@ Both API keys are needed in your `.env.local`:
 
 ```bash
 # Primary AI Provider (Gemini)
-GEMINI_API_KEY=your_gemini_key_here
+GEMINI_API_KEY=AIzaSyC1BCAI9wHgDQr_nH0Zwb0FvhBszbJ3v0E
 
 # Fallback AI Provider (OpenAI) 
 OPENAI_API_KEY=your_openai_key_here
