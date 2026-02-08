@@ -5,7 +5,6 @@ import Link from "next/link"
 import {
   IconBook2,
   IconBrandTiktok,
-  IconDashboard,
   IconDatabase,
   IconFileWord,
   IconInnerShadowTop,
@@ -35,24 +34,19 @@ const data = {
   },
   navMain: [
     {
-      title: "Dashboard",
+      title: "AI Coach",
       url: "/dashboard",
-      icon: IconDashboard,
-    },
-    {
-      title: "Live Coach",
-      url: "/dashboard/coach",
       icon: IconBrain,
-    },
-    {
-      title: "Learn",
-      url: "/dashboard/learn",
-      icon: IconBook2,
     },
     {
       title: "Social Studio",
       url: "/dashboard/social",
       icon: IconBrandTiktok,
+    },
+    {
+      title: "Market Insights",
+      url: "/dashboard/learn",
+      icon: IconBook2,
     },
   ],
   navSecondary: [
@@ -103,7 +97,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Link href="/" className="flex items-center gap-2">
                 <IconInnerShadowTop className="!size-5 text-[#FF444F]" />
-                <span className="text-base font-semibold">Deriv<span className="text-[#FF444F]">Hub</span></span>
+                <span className="relative text-2xl font-bold text-white">Deriv<span className="bg-[#FF444F] text-black rounded-md font-black p-1 ml-1">Hub</span></span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
