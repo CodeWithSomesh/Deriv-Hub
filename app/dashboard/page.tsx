@@ -17,6 +17,7 @@ import {
   IconWallet,
 } from '@tabler/icons-react'
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
+import { motion, AnimatePresence } from 'framer-motion'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,8 +44,12 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
+import Image from 'next/image'
 import { useDemoMode } from '@/lib/demo-context'
 import { demoCoachData, demoTradeHistory, demoPnlChartData, demoDashboardStats } from './demo-data'
+
+import starEyesImg from '@/assets/images/Star_Eyes_Emoji.png'
+import puppyEyesImg from '@/assets/images/Puppy_Eyes_Beg.png'
 
 // Types matching API responses
 type Trade = {
@@ -246,11 +251,12 @@ export default function AICoachDashboard() {
 
         {/* ====== HERO BALANCE ====== */}
         <div className="px-4 lg:px-6">
-          <div className="flex items-end justify-between gap-4">
-            <div>
+          <div className="flex items-center  gap-4">
+            {/* Left: balance info */}
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <IconWallet className="size-6 text-[#FF444F]" />
-                <span className="text-xl font-medium text-muted-foreground uppercase tracking-wider">Account Balance</span>
+                <IconWallet className="size-5 text-[#FF444F]" />
+                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Account Balance</span>
                 {!showDemoData && (
                   <Button
                     variant="ghost"
@@ -260,20 +266,19 @@ export default function AICoachDashboard() {
                     className="size-6 text-muted-foreground hover:text-foreground"
                   >
                     {loadingTrades ? (
-                      <IconLoader2 className="size-3.5 animate-spin" />
+                      <IconLoader2 className="size-4 animate-spin" />
                     ) : (
-                      <IconRefresh className="size-3.5" />
+                      <IconRefresh className="size-4" />
                     )}
                   </Button>
                 )}
               </div>
-              <div className='flex justify-end align-bottom'>
+              <div className="flex items-baseline gap-1">
                 <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tabular-nums tracking-tight text-white leading-none">
                   ${balanceStr}
                 </h1>
-                <span className="text-xl font-semibold text-muted-foreground ml-1 align-bottom bottom">{currency}</span>
+                <span className="text-xl font-semibold text-muted-foreground">{currency}</span>
               </div>
-              
               {/* P&L summary beneath balance */}
               <div className="flex items-center gap-4 mt-3">
                 <span className={`text-sm font-semibold flex items-center gap-1 ${stats.totalPnl >= 0 ? 'text-emerald-400' : 'text-[#FF444F]'}`}>
@@ -284,6 +289,63 @@ export default function AICoachDashboard() {
                   {stats.totalTrades} trades &middot; {stats.winRate}% win rate &middot; {stats.wins}W / {stats.losses}L
                 </span>
               </div>
+            </div>
+
+            {/* Right: animated emoji — star eyes when profiting, puppy eyes when losing */}
+            <div className="relative shrink-0 hidden sm:block">
+              <AnimatePresence mode="wait">
+                {stats.totalPnl > 0 ? (
+                  <motion.div
+                    key="star-eyes"
+                    initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, rotate: 180 }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    drag={true}
+                    dragConstraints={{ top: -20, bottom: 20, left: -20, right: 20 }}
+                  >
+                    <motion.div
+                      animate={{ rotateY: 360 }}
+                      transition={{ duration: 8, ease: 'linear', repeat: Infinity }}
+                      style={{ perspective: 800 }}
+                    >
+                      <Image
+                        src={starEyesImg}
+                        alt="Profiting!"
+                        width={150}
+                        height={150}
+                        className="drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]"
+                        draggable={false}
+                      />
+                    </motion.div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="puppy-eyes"
+                    initial={{ opacity: 0, scale: 0.5, rotate: 180 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, rotate: -180 }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    drag
+                    dragConstraints={{ top: -20, bottom: 20, left: -20, right: 20 }}
+                  >
+                    <motion.div
+                      animate={{ rotateY: 360 }}
+                      transition={{ duration: 10, ease: 'linear', repeat: Infinity }}
+                      style={{ perspective: 800 }}
+                    >
+                      <Image
+                        src={puppyEyesImg}
+                        alt="Losing..."
+                        width={150}
+                        height={150}
+                        className="drop-shadow-[0_0_25px_rgba(255,68,79,0.4)]"
+                        draggable={false}
+                      />
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
