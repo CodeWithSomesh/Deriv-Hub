@@ -1,5 +1,6 @@
 'use client'
 
+import { DemoProvider } from "@/lib/demo-context"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import {
@@ -14,8 +15,9 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-[#ededed]">
-      <SidebarProvider
+    <DemoProvider>
+      <div className="min-h-screen bg-[#0A0A0F] text-[#ededed]">
+        <SidebarProvider
         style={
           {
             "--sidebar-width": "calc(var(--spacing) * 72)",
@@ -33,5 +35,6 @@ export default function DashboardLayout({
       </SidebarProvider>
       <Toaster />
     </div>
+    </DemoProvider>
   )
 }
