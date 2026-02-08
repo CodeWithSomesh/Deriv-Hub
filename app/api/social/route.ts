@@ -16,8 +16,7 @@ const ollama = new Ollama({
 
 // Generate content using Gemini AI (primary)
 async function generateWithGemini(topic: string, platform: string, persona: string, includeEmojis: boolean, additionalContext?: string, topicContext?: string) {
-  // Use stable gemini-pro model to avoid quota issues
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
   const prompt = `You are an AI content creator for financial education. Generate a ${platform} post with the following requirements:
 
@@ -213,7 +212,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Test Gemini models
-    const geminiModels = ['gemini-pro', 'gemini-1.5-pro', 'gemini-1.5-flash']
+    const geminiModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
     results.gemini.tested = geminiModels
     
     for (const modelName of geminiModels) {

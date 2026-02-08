@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Copy, Edit3, Linkedin, Twitter, Sparkles, Save, X, RefreshCw, ChevronUp, Info, FileText } from 'lucide-react'
+import { Copy, Edit3, Linkedin, Twitter, Sparkles, Save, X, RefreshCw, ChevronUp, Info, FileText, ImageIcon, Download } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 
@@ -51,6 +51,11 @@ export default function SocialStudioPage() {
     linkedin: '',
     twitter: ''
   })
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+  const [imagePrompt, setImagePrompt] = useState('')
+  const [imageNegativePrompt, setImageNegativePrompt] = useState('')
+  const [includeImageGeneration, setIncludeImageGeneration] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isCheckingCompliance, setIsCheckingCompliance] = useState(false)
   const [complianceStatus, setComplianceStatus] = useState<{
@@ -60,6 +65,7 @@ export default function SocialStudioPage() {
   const [error, setError] = useState('')
   const [usedProvider, setUsedProvider] = useState('')
   const [previewPlatform, setPreviewPlatform] = useState<'linkedin' | 'twitter'>('linkedin')
+  const [hasCustomImagePrompt, setHasCustomImagePrompt] = useState(false) // Track if user has manually edited the prompt
   
   // News context state
   const [showNewsContext, setShowNewsContext] = useState(false)
@@ -382,6 +388,7 @@ export default function SocialStudioPage() {
       })
       setComplianceStatus(null)
       setIsEditing(false)
+      setHasCustomImagePrompt(false) // Reset so image prompt can be auto-updated for new content
       
       // Use provider from the primary platform
       const primaryData = selectedPlatform === 'linkedin' ? linkedinData : twitterData
@@ -425,6 +432,129 @@ export default function SocialStudioPage() {
       setIsGenerating(false)
     }
   }
+
+  const handleGenerateImage = async () => {
+    if (!imagePrompt.trim()) {
+      toast.error('Please enter an image prompt')
+      return
+    }
+
+    setIsGeneratingImage(true)
+    try {
+      const response = await fetch('/api/image-generation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: imagePrompt.trim(),
+          negativePrompt: imageNegativePrompt.trim() || undefined, // Still using negativePrompt for API compatibility
+          width: 1024,
+          height: 1024
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate image')
+      }
+
+      const data = await response.json()
+      setGeneratedImage(data.imageUrl)
+      toast.success('Image generated successfully!')
+      
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to generate image. Please try again.'
+      toast.error(errorMessage)
+      console.error('Image generation error:', err)
+    } finally {
+      setIsGeneratingImage(false)
+    }
+  }
+
+  const downloadImage = () => {
+    if (!generatedImage) return
+    
+    const link = document.createElement('a')
+    link.href = generatedImage
+    link.download = `generated-image-${Date.now()}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success('Image downloaded!')
+  }
+
+  const generateImagePromptFromContent = (content: string): string => {
+    // Create a dynamic, content-specific visual prompt
+    const cleanContent = content.replace(/[📊📈📉💡🤝🚨🤔💻#@]/g, '').replace(/\n+/g, ' ').trim()
+    
+    // Extract key concepts and themes from the actual content
+    const words = cleanContent.toLowerCase().split(/\s+/)
+    const keyTerms: string[] = []
+    
+    // Financial and business terms
+    const financialTerms = ['market', 'trading', 'investment', 'portfolio', 'risk', 'profit', 'loss', 'volatility', 'data', 'analysis', 'chart', 'trend', 'forex', 'crypto', 'stock', 'bond', 'economy', 'finance', 'price', 'value']
+    const conceptTerms = ['strategy', 'growth', 'success', 'innovation', 'technology', 'digital', 'future', 'management', 'decision', 'opportunity', 'challenge', 'solution', 'insight', 'education', 'learning']
+    
+    // Extract relevant terms that appear in content
+    financialTerms.forEach(term => {
+      if (words.includes(term) || words.includes(term + 's')) {
+        keyTerms.push(term)
+      }
+    })
+    conceptTerms.forEach(term => {
+      if (words.includes(term) || words.includes(term + 's')) {
+        keyTerms.push(term)
+      }
+    })
+    
+    // Create a dynamic prompt based on actual content themes
+    let basePrompt = "Professional business illustration"
+    let stylePrompt = "modern design, clean aesthetic, corporate style"
+    let colorPrompt = "blue and gold color scheme"
+    
+    // Customize based on detected themes
+    if (keyTerms.includes('chart') || keyTerms.includes('data') || keyTerms.includes('analysis')) {
+      basePrompt = "Financial dashboard with charts and data visualization"
+    } else if (keyTerms.includes('risk') || keyTerms.includes('volatility')) {
+      basePrompt = "Abstract financial risk and market volatility concept"
+      colorPrompt = "blue and red gradient colors"
+    } else if (keyTerms.includes('growth') || keyTerms.includes('profit') || keyTerms.includes('success')) {
+      basePrompt = "Upward trending growth and success visualization"
+      colorPrompt = "green and blue professional colors"
+    } else if (keyTerms.includes('technology') || keyTerms.includes('digital') || keyTerms.includes('innovation')) {
+      basePrompt = "Modern technology and innovation concept"
+      colorPrompt = "blue and cyan tech colors"
+      stylePrompt = "futuristic digital design, sleek modern aesthetic"
+    } else if (keyTerms.includes('trading') || keyTerms.includes('forex') || keyTerms.includes('crypto')) {
+      basePrompt = "Trading and financial markets visualization"
+    } else if (keyTerms.includes('education') || keyTerms.includes('learning')) {
+      basePrompt = "Educational business and finance concept"
+    }
+    
+    // Add specific market context if detected
+    const marketTerms = keyTerms.filter(term => ['market', 'trading', 'forex', 'crypto', 'stock', 'investment'].includes(term))
+    if (marketTerms.length > 0) {
+      basePrompt += ` featuring ${marketTerms.join(' and ')} elements`
+    }
+    
+    return `${basePrompt}, ${stylePrompt}, ${colorPrompt}, high quality, professional photography style`
+  }
+
+  const handleShowImageGenerator = () => {
+    setIncludeImageGeneration(true)
+    
+    // Auto-populate with the EXACT generated content (dynamic every generation)
+    if (generatedContent[previewPlatform]) {
+      setImagePrompt(generatedContent[previewPlatform])
+      setHasCustomImagePrompt(false) // Reset custom flag since this is auto-generated
+    }
+  }
+
+  // Auto-update image prompt when platform changes (if not manually edited)
+  useEffect(() => {
+    if (includeImageGeneration && generatedContent[previewPlatform] && !hasCustomImagePrompt) {
+      setImagePrompt(generatedContent[previewPlatform])
+    }
+  }, [previewPlatform, generatedContent, includeImageGeneration, hasCustomImagePrompt])
 
   const checkContentCompliance = async (content: string) => {
     setIsCheckingCompliance(true)
@@ -555,7 +685,7 @@ export default function SocialStudioPage() {
               console.log(`📰 Frontend: Using sourceNews as fallback (${matchingTopic.sourceNews.length} items)`)
               const fallbackContext = `CURRENT MARKET CONTEXT:\n${matchingTopic.sourceNews.map((news: any) => 
                 `[${news.category?.toUpperCase() || 'NEWS'}] ${news.headline || 'Market Update'}: ${news.summary?.substring(0, 200) || 'Financial market development'}`
-              ).join('\n\n')}\n\nThis topic should be based on the above real financial news to avoid hallucination and provide accurate, current market insights.`
+              ).join('\n\n')}`
               
               setNewsContext(fallbackContext)
               setShowNewsContext(true)
@@ -839,6 +969,7 @@ export default function SocialStudioPage() {
                   className="dark:bg-input/30"
                 />
               </div>
+
 
               {/* Generate Button */}
               <Button
@@ -1397,6 +1528,143 @@ export default function SocialStudioPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Image Generation Section */}
+                {(generatedContent.linkedin || generatedContent.twitter) && (
+                  <div className="mt-6 pt-4 border-t border-white/10">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-white">AI Image Generation</h4>
+                          <p className="text-xs text-muted-foreground">Create custom visuals to enhance your post</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-[#FF444F]/30 text-[#FF444F] hover:bg-[#FF444F]/10"
+                          onClick={() => {
+                            if (!includeImageGeneration) {
+                              handleShowImageGenerator()
+                            } else {
+                              setIncludeImageGeneration(false)
+                            }
+                          }}
+                        >
+                          <ImageIcon className="h-3 w-3 mr-1.5" />
+                          {includeImageGeneration ? 'Hide' : 'Show'} Generator
+                        </Button>
+                      </div>
+
+                      {includeImageGeneration && (
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="image-prompt" className="text-xs">Image Prompt</Label>
+                              {hasCustomImagePrompt && generatedContent[previewPlatform] && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs text-muted-foreground hover:text-[#FF444F]"
+                                  onClick={() => {
+                                    setImagePrompt(generatedContent[previewPlatform])
+                                    setHasCustomImagePrompt(false)
+                                    toast.success('Image prompt regenerated from content!')
+                                  }}
+                                >
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Reset
+                                </Button>
+                              )}
+                            </div>
+                            <Input
+                              id="image-prompt"
+                              value={imagePrompt}
+                              onChange={(e) => {
+                                setImagePrompt(e.target.value)
+                                setHasCustomImagePrompt(true) // Mark as manually edited
+                              }}
+                              placeholder={generatedContent[previewPlatform] ? "Auto-generated from your content - edit if needed..." : "Generate content first to auto-populate this field..."}
+                              className="dark:bg-input/30 text-sm"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="negative-prompt" className="text-xs">Other prompt <span className="text-muted-foreground">(Optional)</span></Label>
+                            <Input
+                              id="negative-prompt"
+                              value={imageNegativePrompt}
+                              onChange={(e) => setImageNegativePrompt(e.target.value)}
+                              placeholder="e.g. add specific elements, style modifications, additional details..."
+                              className="dark:bg-input/30 text-sm"
+                            />
+                          </div>
+
+                          <Button
+                            onClick={handleGenerateImage}
+                            disabled={isGeneratingImage || !imagePrompt.trim()}
+                            className="w-full bg-[#FF444F] hover:bg-[#E63946] text-white"
+                            size="sm"
+                          >
+                            {isGeneratingImage ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2" />
+                                Generating Image...
+                              </>
+                            ) : (
+                              <>
+                                <ImageIcon className="h-3 w-3 mr-2" />
+                                Generate Image
+                              </>
+                            )}
+                          </Button>
+
+                          {generatedImage && (
+                            <div className="space-y-3">
+                              <div className="relative bg-card/20 border border-white/10 rounded-lg p-2">
+                                <img 
+                                  src={generatedImage} 
+                                  alt="Generated image" 
+                                  className="w-full rounded-lg"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={downloadImage}
+                                  size="sm"
+                                  className="flex-1 border border-white/20 bg-transparent text-white hover:bg-white/10"
+                                >
+                                  <Download className="h-3 w-3 mr-2" />
+                                  Download
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="flex-1 border border-white/20 bg-transparent text-white hover:bg-white/10"
+                                  onClick={async () => {
+                                    try {
+                                      // Convert base64 to blob for copying
+                                      const response = await fetch(generatedImage)
+                                      const blob = await response.blob()
+                                      await navigator.clipboard.write([
+                                        new ClipboardItem({ [blob.type]: blob })
+                                      ])
+                                      toast.success('Image copied to clipboard!')
+                                    } catch (err) {
+                                      toast.error('Failed to copy image')
+                                    }
+                                  }}
+                                >
+                                  <Copy className="h-3 w-3 mr-2" />
+                                  Copy Image
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
