@@ -326,7 +326,7 @@ Format: Return only the 12 topic phrases, one per line, nothing else. Each topic
 
 // Generate topic using Gemini (fallback)
 async function generateTopicWithGemini(newsItems: NewsItem[], previousTopics: string[] = []): Promise<{ topics: string[], newsContext: Record<string, NewsItem[]> }> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
   
   // Diversify news selection first
   const diversifiedNews = diversifyNewsSelection(newsItems)
@@ -445,7 +445,7 @@ function createTopicContext(newsItems: NewsItem[]): string {
     return `${category} ${headline}: ${summary}`
   }).join('\n\n')
 
-  return `CURRENT MARKET CONTEXT:\n${contextParts}\n\nThis topic should be based on the above real financial news to avoid hallucination and provide accurate, current market insights.`
+  return `CURRENT MARKET CONTEXT:\n${contextParts}`
 }
 
 // Extract actual news sources and release date from news items
@@ -783,7 +783,10 @@ export async function GET(request: NextRequest) {
       newsSource: 'Default Topics',
       actualSources: [],
       primarySource: 'Default Topics',
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
+      newsReleaseDate: Date.now(),
+      sourceNews: [],
+      context: `GENERAL MARKET CONTEXT:\nThis is a general educational topic about ${topic.label}. Market conditions are constantly changing and this content is for educational purposes only. Always conduct your own research and consider market volatility when making financial decisions.`
     }))
     
     return NextResponse.json({

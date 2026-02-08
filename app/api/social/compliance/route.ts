@@ -50,7 +50,7 @@ function preCheckCompliance(content: string): { isCompliant: boolean, reason?: s
 
 // Check compliance using Gemini AI (primary)
 async function checkComplianceWithGemini(content: string) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
   const prompt = `You are a nuanced, moderately strict compliance checker for financial content. Be thoughtful and balanced in your analysis - not overly permissive, but also not unnecessarily harsh. Focus on flagging content that contains clear financial advice or recommendations.
 
